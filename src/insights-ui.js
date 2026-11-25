@@ -26,6 +26,7 @@ export class Intelligence {
     this.playerHeroes = new Map();
     this.comparisons = new Map();
     this.builds = new Map();
+    this.activeBuild = null;
     this.selectedHeroes = new Map();
   }
 
@@ -68,8 +69,12 @@ export class Intelligence {
 
   leaderCard(player, index, heroId) {
     const build = player.build;
-    const buildRecord = build ? this.builds.get(`${heroId}:${build.hero_build_id}`) : null;
-    return `<li class="leader-card"><div class="leader-summary"><span class="best-rank">0${index + 1}</span><div><button class="player-jump" data-lookup="${player.account_id}">${esc(player.name || `Steam account ${player.account_id}`)} <span aria-hidden="true">↗</span></button><small>Account ${player.account_id} · ${count(player.matches)} hero matches</small></div><strong>${pct(player.value)}<small>win rate</small></strong></div><div class="observed-build">${build ? `<span class="section-label">MOST-USED OBSERVED BUILD</span><p>Build #${build.hero_build_id} · selected in ${count(build.matches)} processed ${build.matches === 1 ? "demo" : "demos"}</p><button id="build-${heroId}-${player.account_id}-${build.hero_build_id}" class="insight-button" data-show-build="${build.hero_build_id}" data-build-hero="${heroId}">${buildRecord ? "Reload build details" : "Show build & items"}</button>${buildRecord ? `${this.status(buildRecord, `data-show-build="${build.hero_build_id}" data-build-hero="${heroId}"`)}${buildRecord.data ? this.buildDetails(buildRecord.data) : ""}` : ""}<p class="insight-footnote">Observed at match start; demo coverage is partial. Selection does not prove every item was purchased.</p>` : `<p class="insight-empty">${player.buildError ? esc(player.buildError) : "No observed build is available for this player and hero. We will not substitute a popular build."}</p>`}</div></li>`;
+    // Cached build data is not expansion state: Back must hide it without
+    // discarding the cache, and Forward must reopen only the selected card.
+    const expanded = build && this.activeBuild?.account === player.account_id && this.activeBuild?.id === build.hero_build_id;
+    const buildRecord = expanded ? this.load(this.builds, `${heroId}:${build.hero_build_id}`, () => fetchBuild(heroId, build.hero_build_id)) : null;
+    const buildButton = build ? `data-show-build="${build.hero_build_id}" data-build-hero="${heroId}" data-build-account="${player.account_id}"` : "";
+    return `<li class="leader-card"><div class="leader-summary"><span class="best-rank">0${index + 1}</span><div><button class="player-jump" data-lookup="${player.account_id}">${esc(player.name || `Steam account ${player.account_id}`)} <span aria-hidden="true">↗</span></button><small>Account ${player.account_id} · ${count(player.matches)} hero matches</small></div><strong>${pct(player.value)}<small>win rate</small></strong></div><div class="observed-build">${build ? `<span class="section-label">MOST-USED OBSERVED BUILD</span><p>Build #${build.hero_build_id} · selected in ${count(build.matches)} processed ${build.matches === 1 ? "demo" : "demos"}</p><button id="build-${heroId}-${player.account_id}-${build.hero_build_id}" class="insight-button" ${buildButton} aria-expanded="${Boolean(expanded)}">${expanded ? "Reload build details" : "Show build & items"}</button>${buildRecord ? `${this.status(buildRecord, buildButton)}${buildRecord.data ? this.buildDetails(buildRecord.data) : ""}` : ""}<p class="insight-footnote">Observed at match start; demo coverage is partial. Selection does not prove every item was purchased.</p>` : `<p class="insight-empty">${player.buildError ? esc(player.buildError) : "No observed build is available for this player and hero. We will not substitute a popular build."}</p>`}</div></li>`;
   }
 
   buildDetails({ build, itemNames }) {
