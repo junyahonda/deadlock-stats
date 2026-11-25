@@ -19,6 +19,37 @@ test("a browser network failure gives an actionable offline message", async () =
   }
 });
 
+test("all live API requests bypass the browser HTTP cache", async () => {
+  const original = globalThis.fetch;
+  let requests = 0;
+  globalThis.fetch = async (url, options) => {
+    requests++;
+    assert.equal(options.cache, "no-store");
+    return new Response(url.includes("match-history") ? JSON.stringify([validMatch]) : "[]");
+  };
+  try {
+    const player = await fetchPlayer("399289886");
+    await player.profilePromise;
+    assert.equal(requests, 2);
+    assert.equal(player.demo, false);
+    assert.equal(player.stored, false);
+  } finally {
+    globalThis.fetch = original;
+  }
+});
+
+test("empty or malformed rate-limit bodies give a busy message instead of a parse error", async () => {
+  const original = globalThis.fetch;
+  try {
+    for (const body of ["", "<html>rate limited</html>", "{}"]) {
+      globalThis.fetch = async (url) => new Response(url.includes("match-history") ? body : "[]", { status: url.includes("match-history") ? 429 : 200 });
+      await assert.rejects(fetchPlayer("399289886"), /busy.*Wait a moment/);
+    }
+  } finally {
+    globalThis.fetch = original;
+  }
+});
+
 test("vanity search selects the exact custom URL, not a higher-ranked fuzzy result", async () => {
   const original = globalThis.fetch;
   globalThis.fetch = async () =>

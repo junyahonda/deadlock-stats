@@ -16,7 +16,7 @@ async function readJson(response) {
 async function get(path, signal) {
   let response;
   try {
-    response = await fetch(`${API}${path}`, { signal });
+    response = await fetch(`${API}${path}`, { signal, cache: "no-store" });
   } catch (error) {
     if (error.name === "AbortError" || error.name === "TimeoutError")
       throw error;
@@ -26,8 +26,13 @@ async function get(path, signal) {
   }
   // The API can return stored history with 429; accept only an actual array.
   if (response.status === 429 && path.includes("/match-history")) {
-    const data = await readJson(response);
-    if (Array.isArray(data)) return { data, stored: true };
+    try {
+      const data = await readJson(response);
+      if (Array.isArray(data)) return { data, stored: true };
+    } catch (error) {
+      if (["AbortError", "TimeoutError"].includes(error.name)) throw error;
+      // An empty/malformed 429 body is still rate limiting, not a JSON fault.
+    }
   }
   if (!response.ok) {
     if (response.status === 404) {
@@ -92,6 +97,7 @@ export async function resolvePlayer(raw, signal) {
 
 export async function fetchPlayer(raw, signal) {
   const id = await resolvePlayer(raw, signal);
+  let verified = { profile: null, status: "loading" };
   // Optional name/avatar data must never hold back the match dashboard.
   const profileSignal = AbortSignal.any([
     ...(signal ? [signal] : []),
@@ -114,7 +120,11 @@ export async function fetchPlayer(raw, signal) {
     .catch((error) => ({
       profile: null,
       status: error.code === "NOT_FOUND" ? "missing" : "unavailable",
-    }));
+    }))
+    .then((result) => {
+      verified = result;
+      return result;
+    });
   const history = await get(`/v1/players/${id}/match-history`, signal);
   if (!Array.isArray(history.data))
     throw new Error(
@@ -141,7 +151,6 @@ export async function fetchPlayer(raw, signal) {
     );
   // An empty history is not evidence that a player exists. Only wait for the
   // optional profile when there are no matches to show in the meantime.
-  let verified = { profile: null, status: "loading" };
   if (!matches.length) {
     verified = await profilePromise;
     if (verified.status === "missing")

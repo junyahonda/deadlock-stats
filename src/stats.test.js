@@ -25,6 +25,8 @@ test("custom Steam URLs are parsed without treating their names as numeric IDs",
 });
 
 test("rejects invalid and lookalike profiles instead of making the wrong lookup", () => {
+  assert.throws(() => parsePlayerInput("-123"), /must be positive numbers/);
+  assert.throws(() => parsePlayerInput("- 123/"), /must be positive numbers/);
   for (const input of [
     "",
     "https://steamcommunity.com.evil.test/id/player",

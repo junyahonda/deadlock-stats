@@ -33,7 +33,8 @@ self.addEventListener("fetch", (event) => {
         }
         return response;
       } catch {
-        return (await caches.match(shell)) || Response.error();
+        const cache = await caches.open(CACHE);
+        return (await cache.match(shell, { ignoreVary: true })) || Response.error();
       }
     })());
     return;
@@ -42,7 +43,10 @@ self.addEventListener("fetch", (event) => {
   // remain fresh on deploy; old clients keep their version until tabs close.
   event.respondWith((async () => {
     const cache = await caches.open(CACHE);
-    const cached = await cache.match(request);
+    // Precache fetches and module/font requests have different Origin headers.
+    // Preview hosts can send Vary: Origin even for identical public files.
+    // These are same-origin static files only, never API or personalized data.
+    const cached = await cache.match(request, { ignoreVary: true });
     if (new URL(request.url).pathname.includes("/assets/") && cached) return cached;
     try {
       const response = await fetch(request);

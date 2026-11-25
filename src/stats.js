@@ -79,6 +79,8 @@ export function parsePlayerInput(raw) {
   }
   if (/^\d[\d\s]*\/?$/.test(value))
     value = value.replace(/\s/g, "").replace(/\/$/, "");
+  if (/^-[\d\s]+\/?$/.test(value))
+    throw new Error("Steam account IDs must be positive numbers. Check the ID and try again.");
   const steam3 = value.match(/^\[U:1:(\d+)\]$/i);
   const steam2 = value.match(/^STEAM_[01]:([01]):(\d+)$/i);
   let account;

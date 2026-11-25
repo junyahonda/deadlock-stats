@@ -673,7 +673,7 @@ select {
 }
 .tabs button span {
   font:
-    9px "DM Sans",
+    12px "DM Sans",
     sans-serif;
   color: var(--muted);
   padding: 2px 5px;
@@ -1501,7 +1501,9 @@ footer p a {
 
 /* Legible type and physical touch targets apply at every viewport. */
 .profile-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.profile-actions > button, .saved-players button { border: 1px solid #52665b; border-radius: 3px; background: #172c26; color: var(--cream); padding: 9px 12px; font-size: 12px; }
+.profile-actions > button, .saved-players button { border: 1px solid #52665b; border-radius: 3px; background: #172c26; color: #e9e8db; padding: 9px 12px; font-size: 12px; }
+.profile-actions .refresh { justify-content: center; margin-left: 0; }
+.data-badge.previous { color: var(--gold); border-color: #8a784e; background: #353727; }
 .profile-actions > button[aria-pressed="true"] { color: #e1bd79; }
 #share-status { flex-basis: 100%; font-size: 12px; }
 #share-status input { width: 100%; font-size: 16px; min-height: 44px; }

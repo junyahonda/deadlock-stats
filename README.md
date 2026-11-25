@@ -13,6 +13,8 @@ npm run dev
 
 `npm test` checks Steam ID parsing and stats calculations. `npm run build` produces the static site in `dist/`; `npm run preview` serves that build.
 
+On a Devin VM using nvm, run `source ~/.nvm/nvm.sh` first. For offline checks, use an isolated production preview (`npm run preview -- --port 4188`), not the development server, and wait for the service worker to finish downloading the app before going offline.
+
 ## Lookups and data
 
 - Accepts SteamID64 (converted with BigInt, never floating point), account IDs, SteamID2, SteamID3, and `steamcommunity.com/profiles/…` or `/id/…` URLs, including mobile `m.` links and profile sub-pages. Numeric IDs may include spaces or a trailing slash.
@@ -33,6 +35,8 @@ npm run dev
 The web manifest provides app icons, the app name and standalone mode for **Chrome → Add to Home screen / Install app** on Android. Installation requires HTTPS (or localhost). No paid service or Play Store account is needed.
 
 Production builds include a scope-limited service worker that downloads the static app and saved demo chunk after first load. Once it finishes, the app and explicit saved demos work offline. Live player searches still need the public API and show a connection error offline; they are never silently replaced by demo data. The worker never intercepts external API requests or the main website, and a new worker activates after older app tabs close. Development mode does not register the worker.
+
+Live API fetches bypass the browser HTTP cache. Earlier session results are labeled as previous results, including when the phone goes offline, and retain their fetch timestamp. A failed initial deep-link lookup keeps the requested player/demo URL for retry after reconnecting. Static cache matching ignores `Vary: Origin` because precache requests and browser module/font requests can carry different Origin headers even when the public file is identical; navigation fallback uses this build's cache only.
 
 ## GitHub Pages
 

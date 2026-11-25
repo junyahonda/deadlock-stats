@@ -70,11 +70,11 @@ function header() {
 }
 
 function search() {
-  return `<section class="search-section" aria-labelledby="search-title"><div class="eyebrow"><span class="tiny-line"></span> YOUR GAME, IN FOCUS</div><div class="intro-grid"><div><h1 id="search-title">Know your game.<br><em>Own the next one.</em></h1><p class="intro">Every match tells a story. Find your form, your heroes,<br class="desktop-break"> and your next edge.</p></div><div class="hero-art" aria-hidden="true"><span class="art-orbit"></span>${[4, 1, 7].map((id) => `<img loading="lazy" decoding="async" src="${heroCards[id]}" alt="" />`).join("")}<span class="art-stamp">EVERY MATCH.<br>A NEW STORY.</span></div></div><form id="search-form" novalidate><label for="player-input">FIND A PLAYER</label><div class="search-box"><span class="search-icon" aria-hidden="true">⌕</span><input id="player-input" name="player" type="text" value="${esc(state.input)}" placeholder="Steam ID or Steam profile link" autocomplete="off" spellcheck="false" autocapitalize="off" aria-describedby="search-hint${state.error ? " lookup-error" : ""}" ${state.error ? 'aria-invalid="true"' : ""} /><button class="primary" type="submit" ${state.loading ? "disabled" : ""}>${state.loading ? "Searching…" : "Look up player"} <span aria-hidden="true">→</span></button></div><p id="search-hint" class="input-hint">Steam ID64, account ID, or steamcommunity.com/id/your-name</p></form><div class="quick-profiles"><span>TRY A PLAYER</span>${samples.map((s) => `<button type="button" data-lookup="${s.id}">${esc(s.profile.personaname)} ${arrow}</button>`).join("")}</div>${state.error ? `<div class="notice error" id="lookup-error" role="alert"><strong>Couldn’t load this player.</strong> ${esc(state.error)} <button type="button" data-demo="0">Explore a saved demo →</button></div>` : ""}</section>`;
+  return `<section class="search-section" aria-labelledby="search-title"><div class="eyebrow"><span class="tiny-line"></span> YOUR GAME, IN FOCUS</div><div class="intro-grid"><div><h1 id="search-title">Know your game.<br><em>Own the next one.</em></h1><p class="intro">Every match tells a story. Find your form, your heroes,<br class="desktop-break"> and your next edge.</p></div><div class="hero-art" aria-hidden="true"><span class="art-orbit"></span>${[4, 1, 7].map((id) => `<img loading="lazy" decoding="async" src="${heroCards[id]}" alt="" />`).join("")}<span class="art-stamp">EVERY MATCH.<br>A NEW STORY.</span></div></div><form id="search-form" novalidate><label for="player-input">FIND A PLAYER</label><div class="search-box"><span class="search-icon" aria-hidden="true">⌕</span><input id="player-input" name="player" type="text" value="${esc(state.input)}" placeholder="Steam ID or Steam profile link" autocomplete="off" spellcheck="false" autocapitalize="off" aria-describedby="search-hint${state.error ? " lookup-error" : ""}" ${state.error ? 'aria-invalid="true"' : ""} /><button class="primary" type="submit" ${state.loading ? "disabled" : ""}>${state.loading ? "Searching…" : "Look up player"} <span aria-hidden="true">→</span></button></div><p id="search-hint" class="input-hint">Steam ID64, account ID, or steamcommunity.com/id/your-name</p></form><div class="quick-profiles"><span>TRY A LIVE PLAYER · ONLINE</span>${samples.map((s) => `<button type="button" data-lookup="${s.id}">${esc(s.profile.personaname)} ${arrow}</button>`).join("")}</div>${state.error ? `<div class="notice error" id="lookup-error" role="alert"><strong>Couldn’t load this player.</strong> ${esc(state.error)} <button type="button" data-demo="0">Explore a saved demo →</button></div>` : ""}</section>`;
 }
 
 function landing() {
-  return `<section class="landing"><div class="section-label"><span>THE MATCH IS ONLY HALF THE STORY</span><span>01 — THE NUMBERS</span></div><div class="feature-grid"><article><span class="feature-number">01 /</span><h2>Find your form.</h2><p>Recent wins, losses, and your KDA. See the bigger picture behind your last match.</p></article><article><span class="feature-number">02 /</span><h2>Meet your mains.</h2><p>Track your most-played heroes and see which ones turn your time into wins.</p></article><article><span class="feature-number">03 /</span><h2>Straight from the source.</h2><p>Live public stats, no sign-in required. Your Steam profile is all you need.</p></article></div><div class="demo-strip"><div><strong>Just looking around?</strong><span>Explore saved profiles. No API connection needed.</span></div><div>${samples.map((s, i) => `<button class="text-button" data-demo="${i}">${esc(s.profile.personaname)} ${arrow}</button>`).join("")}</div></div></section>`;
+  return `<section class="landing"><div class="section-label"><span>THE MATCH IS ONLY HALF THE STORY</span><span>01 — THE NUMBERS</span></div><div class="feature-grid"><article><span class="feature-number">01 /</span><h2>Find your form.</h2><p>Recent wins, losses, and your KDA. See the bigger picture behind your last match.</p></article><article><span class="feature-number">02 /</span><h2>Meet your mains.</h2><p>Track your most-played heroes and see which ones turn your time into wins.</p></article><article><span class="feature-number">03 /</span><h2>Straight from the source.</h2><p>Live public stats, no sign-in required. Your Steam profile is all you need.</p></article></div><div class="demo-strip"><div><strong>Just looking around?</strong><span>Saved demo snapshots — not live stats. Available offline after download.</span></div><div>${samples.map((s, i) => `<button class="text-button" data-demo="${i}">${esc(s.profile.personaname)} · demo ${arrow}</button>`).join("")}</div></div></section>`;
 }
 
 function matchList(matches) {
@@ -104,7 +104,7 @@ function results() {
   const all = standardMatches(player.matches);
   const matches = all.slice(0, state.limit);
   const stats = summarize(matches);
-  return `<section class="results" aria-labelledby="player-title"><div class="profile-top"><div class="profile-identity">${image(player.profile.avatarfull, "", "avatar")}<div><div class="profile-overline">PLAYER DOSSIER <span class="data-badge ${player.demo ? "demo" : ""}"><i></i>${player.demo ? "SAVED DEMO" : player.stored ? "STORED API DATA" : "LIVE API"}</span></div><h2 id="player-title">${esc(player.profile.personaname)}</h2><a class="steam-link" href="https://steamcommunity.com/profiles/${STEAM_BASE + BigInt(player.id)}" target="_blank" rel="noreferrer">Steam · ${player.id} ${arrow}</a></div></div><button class="refresh" data-lookup="${player.id}" aria-label="Refresh live player stats">↻ <span>${player.demo ? "Load live" : "Refresh"}</span></button></div>${player.demo ? `<div class="notice demo-notice">You’re viewing a saved snapshot from ${new Date(player.fetchedAt).toLocaleDateString()}. These are sample stats, not live results. <button data-lookup="${player.id}">Try live stats →</button></div>` : ""}<div class="scope-row"><p>${matches.length ? `Showing the latest <strong>${matches.length}</strong> indexed standard matches` : "No indexed standard matches yet"}</p><label class="range-control">Match window <select id="match-window" aria-label="Match window">${[20, 50, 100].map((n) => `<option value="${n}" ${state.limit === n ? "selected" : ""}>Last ${n}</option>`).join("")}</select></label></div>${
+  return `<section class="results" aria-labelledby="player-title"><div class="profile-top"><div class="profile-identity">${image(player.profile.avatarfull, "", "avatar")}<div><div class="profile-overline">PLAYER DOSSIER <span class="data-badge ${player.demo ? "demo" : ""}"><i></i>${player.demo ? "SAVED DEMO" : player.stored ? "STORED API DATA" : "LIVE API"}</span></div><h2 id="player-title">${esc(player.profile.personaname)}</h2><a class="steam-link" href="https://steamcommunity.com/profiles/${STEAM_BASE + BigInt(player.id)}" target="_blank" rel="noreferrer">Steam · ${player.id} ${arrow}</a></div></div><button class="refresh" data-lookup="${player.id}" aria-label="Refresh live player stats">↻ <span>${player.demo ? "Load live" : "Refresh"}</span></button></div>${player.demo ? `<div class="notice demo-notice">You’re viewing a saved snapshot from ${new Date(player.fetchedAt).toLocaleDateString()}. These are sample stats, not live results. <button data-lookup="${player.id}">Try live stats →</button></div>` : ""}<div class="scope-row"><p>${matches.length ? `Showing the latest <strong>${matches.length}</strong> indexed standard ${matches.length === 1 ? "match" : "matches"}` : "No indexed standard matches yet"}</p><label class="range-control">Match window <select id="match-window" aria-label="Match window">${[20, 50, 100].map((n) => `<option value="${n}" ${state.limit === n ? "selected" : ""}>Last ${n}</option>`).join("")}</select></label></div>${
     matches.length
       ? `<div class="stat-grid"><article class="stat-card featured"><span>WIN RATE</span><strong>${percent(stats.winRate)}<span class="stat-arrow" aria-hidden="true">↗</span></strong><small>${stats.wins} wins <b>·</b> ${stats.losses} losses${stats.scored < stats.total ? ` · ${stats.total - stats.scored} unscored` : ""}</small></article><article class="stat-card"><span>KDA RATIO</span><strong>${ratio(stats.kda)}</strong><small>(kills + assists) / deaths</small></article><article class="stat-card"><span>AVG. K / D / A</span><strong class="avg-kda">${(stats.kills / stats.total).toFixed(1)}<b>/</b>${(stats.deaths / stats.total).toFixed(1)}<b>/</b>${(stats.assists / stats.total).toFixed(1)}</strong><small>per indexed match</small></article><article class="stat-card"><span>HEROES PLAYED</span><strong>${String(stats.heroes.length).padStart(2, "0")}</strong><small>in this match window</small></article></div><div class="dashboard-grid"><section class="matches-panel"><div class="panel-heading"><div class="tabs" role="tablist" aria-label="Player stats"><button id="matches-tab" role="tab" aria-controls="stats-panel" aria-selected="${state.tab === "matches"}" data-tab="matches">Recent matches</button><button id="heroes-tab" role="tab" aria-controls="stats-panel" aria-selected="${state.tab === "heroes"}" data-tab="heroes">Heroes <span>${stats.heroes.length}</span></button></div><span class="panel-note">${state.tab === "matches" ? "NEWEST FIRST" : "MOST PLAYED FIRST"}</span></div><div id="stats-panel" role="tabpanel" aria-labelledby="${state.tab}-tab">${state.tab === "matches" ? matchList(matches) : heroList(stats.heroes, true)}</div></section><aside class="top-heroes"><div class="panel-heading"><h3>Your most played</h3><span>HEROES</span></div>${heroList(stats.heroes)}<div class="form-box"><span>RECENT FORM</span><div class="form-blocks">${matches
           .slice(0, 10)
@@ -141,6 +141,13 @@ function saveRecent(player) {
   const others = recentPlayers.filter((p) => p.id !== player.id || p.demo !== player.demo);
   const ordered = [entry, ...others];
   recentPlayers = [...ordered.filter((p) => p.favorite), ...ordered.filter((p) => !p.favorite)].slice(0, 16);
+  writePlayers(recentPlayers);
+}
+
+function updateSavedName(player) {
+  const saved = recentPlayers.find((p) => p.id === player.id && p.demo === player.demo);
+  if (!saved) return;
+  saved.name = player.profile.personaname;
   writePlayers(recentPlayers);
 }
 
@@ -198,6 +205,12 @@ function updateSearchGuidance() {
     "Steam ID, player name, or profile link";
   const errorTitle = document.querySelector("#lookup-error strong");
   if (errorTitle) errorTitle.textContent = state.errorTitle;
+  if (state.candidates.length) {
+    const notice = document.querySelector("#lookup-error");
+    notice.classList.remove("error");
+    notice.setAttribute("role", "status");
+    notice.textContent = "Several players match this name. Choose the right account below.";
+  }
   const fallback = document.querySelector("#lookup-error [data-demo]");
   if (fallback && state.player) {
     const index = samples.findIndex((s) => s.id === state.player.id);
@@ -215,6 +228,13 @@ function updateSearchGuidance() {
   }
   if (state.player && !state.player.demo) {
     const player = state.player;
+    const badge = region.querySelector(".data-badge");
+    if (badge && (navigator.onLine === false || player.previous)) {
+      badge.textContent = navigator.onLine === false ? "OFFLINE · PREVIOUS RESULT" : "PREVIOUS API RESULT";
+      badge.classList.add("previous");
+    }
+    if (player.profileStatus === "loading" && player.profile.personaname === `Steam account ${player.id}`)
+      region.querySelector("#player-title").textContent = "Player stats";
     const link = region.querySelector(".steam-link");
     if (link && player.profileStatus !== "found") {
       link.removeAttribute("href");
@@ -308,7 +328,7 @@ function renderKeepPosition() {
   window.scrollTo(0, scroll);
 }
 
-async function lookup(value, { navigation = "push" } = {}) {
+async function lookup(value, { navigation = "push", preserveRoute = false, profileHint } = {}) {
   controller?.abort();
   controller = new AbortController();
   const activeController = controller;
@@ -335,16 +355,19 @@ async function lookup(value, { navigation = "push" } = {}) {
   try {
     const player = await fetchPlayer(state.input, activeController.signal);
     if (serial !== request) return;
+    if (player.profileStatus === "loading" && profileHint?.account_id === player.id)
+      player.profile = profileHint;
     state.player = player;
     state.show = 8;
     state.tab = "matches";
     rememberPlayer(player, navigation);
     player.profilePromise.then(({ profile, status }) => {
-      if (profile) player.profile = profile;
+      if (profile) {
+        player.profile = profile;
+        updateSavedName(player);
+      }
       player.profileStatus = status;
-      if (state.player !== player) return;
-      saveRecent(player);
-      renderKeepPosition();
+      if (state.player === player || profile) renderKeepPosition();
     });
   } catch (error) {
     if (serial !== request) return;
@@ -354,7 +377,8 @@ async function lookup(value, { navigation = "push" } = {}) {
         : error.message;
     state.candidates = error.candidates ?? [];
     if (state.candidates.length) state.errorTitle = "Choose a player.";
-    restoreCurrentUrl();
+    if (state.player) state.player.previous = true;
+    if (state.player || !preserveRoute) restoreCurrentUrl();
   } finally {
     clearTimeout(timeout);
     if (serial === request) {
@@ -388,6 +412,7 @@ app.addEventListener("input", (event) => {
 function showSavedPlayer(player, navigation = "push") {
   controller?.abort();
   request++;
+  if (!player.demo) player.previous = true;
   state.player = player;
   state.input = String(player.id);
   state.loading = false;
@@ -400,7 +425,7 @@ function showSavedPlayer(player, navigation = "push") {
   revealResults();
 }
 
-async function openDemo(id, navigation = "push") {
+async function openDemo(id, navigation = "push", { preserveRoute = false } = {}) {
   controller?.abort();
   const serial = ++request;
   state.loading = true;
@@ -414,7 +439,7 @@ async function openDemo(id, navigation = "push") {
     if (serial !== request) return;
     state.loading = false;
     state.error = "The saved demo could not load. Go online once to download it, then try again.";
-    restoreCurrentUrl();
+    if (state.player || !preserveRoute || !samples.some((s) => s.id === Number(id))) restoreCurrentUrl();
     render();
   }
 }
@@ -440,7 +465,11 @@ app.addEventListener("click", (event) => {
   }
   const button = event.target.closest("button");
   if (!button) return;
-  if (button.dataset.lookup) lookup(button.dataset.lookup);
+  if (button.dataset.lookup) {
+    const id = Number(button.dataset.lookup);
+    const profileHint = state.candidates.find((p) => p.account_id === id) ?? (state.player?.id === id ? state.player.profile : undefined);
+    lookup(button.dataset.lookup, { profileHint });
+  }
   if (button.dataset.demo !== undefined) {
     openDemo(samples[Number(button.dataset.demo)].id);
   }
@@ -517,8 +546,8 @@ function openLocation() {
   if (cached) return showSavedPlayer(cached, "none");
   if (id) {
     state.player = null;
-    if (demo) return openDemo(id, "replace");
-    return lookup(id, { navigation: "replace" });
+    if (demo) return openDemo(id, "replace", { preserveRoute: true });
+    return lookup(id, { navigation: "replace", preserveRoute: true });
   }
   showHome("none");
 }
@@ -526,6 +555,12 @@ function openLocation() {
 history.replaceState({ key: "home" }, "", location.href);
 openLocation();
 window.addEventListener("popstate", openLocation);
+for (const event of ["online", "offline"]) {
+  window.addEventListener(event, () => {
+    if (state.player && !state.player.demo && navigator.onLine === false) state.player.previous = true;
+    renderKeepPosition();
+  });
+}
 
 if (import.meta.env.PROD && "serviceWorker" in navigator) {
   window.addEventListener("load", () => {
