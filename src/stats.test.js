@@ -32,11 +32,42 @@ test("rejects invalid and lookalike profiles instead of making the wrong lookup"
     "0",
     "4294967296",
     "76561197960265727",
-    "playername",
+    "https://s.team/p/not-real",
+    "https://s.team/p/wwww-wwwww",
+    "https://steamcommunity.com/id/%zz",
     "https://steamcommunity.com/groups/a",
   ]) {
     assert.throws(() => parsePlayerInput(input));
   }
+});
+
+test("accepts mobile and profile-tab links, share links, pasted numeric formatting, and bare names", () => {
+  for (const input of [
+    "https://steamcommunity.com/profiles/76561198359555614/home",
+    "m.steamcommunity.com/profiles/76561198359555614/games/?tab=all",
+    "76561198359555614/",
+    "7656 1198 3595 55614",
+  ])
+    assert.deepEqual(parsePlayerInput(input), { accountId: 399289886 });
+  assert.deepEqual(
+    parsePlayerInput("https://steamcommunity.com/id/Parzeli/games/?tab=all"),
+    { vanity: "Parzeli" },
+  );
+  for (const input of [
+    "https://s.team/p/fdgc-rhf",
+    "s.team/p/fdgc-rhf/token",
+    "https://steamcommunity.com/user/fdgc-rhf/",
+  ]) {
+    assert.deepEqual(parsePlayerInput(input), { accountId: 52698195 });
+  }
+  assert.deepEqual(parsePlayerInput("imduckies"), {
+    vanity: "imduckies",
+    allowSearch: true,
+  });
+  assert.deepEqual(parsePlayerInput("C9 Average"), {
+    vanity: "C9 Average",
+    allowSearch: true,
+  });
 });
 
 const match = (overrides = {}) => ({

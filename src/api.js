@@ -36,6 +36,10 @@ export async function resolvePlayer(raw, signal) {
     `/v1/players/steam-search?search_query=${encodeURIComponent(input.vanity)}&limit=100&min_matches_played_last_30d=0`,
     signal,
   );
+  if (!Array.isArray(data))
+    throw new Error(
+      "The profile search is temporarily unavailable. Try a numeric Steam ID or Steam share link.",
+    );
   const exact = data.find((p) => {
     try {
       return (
@@ -46,9 +50,16 @@ export async function resolvePlayer(raw, signal) {
       return false;
     }
   });
+  if (!exact && input.allowSearch && Array.isArray(data) && data.length) {
+    const error = new Error(
+      "Choose the right player below. Display names are not unique.",
+    );
+    error.candidates = data.slice(0, 8);
+    throw error;
+  }
   if (!exact)
     throw new Error(
-      "This custom Steam URL is not indexed yet. Use the numeric Steam ID or /profiles/ link instead.",
+      "This custom URL or name is not indexed yet. Paste the player’s numeric Steam ID or a Steam mobile share link (s.team/p/…). For your own ID: open Steam → your account name → Account details and copy the Steam ID below your account name. Display names may differ from custom URL names.",
     );
   return exact.account_id;
 }

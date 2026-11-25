@@ -476,6 +476,51 @@ h1 em {
   margin: 7px 0;
   overflow-wrap: anywhere;
 }
+#player-title:focus,
+#choice-title:focus {
+  outline: none;
+}
+.player-choices {
+  border-top: 1px solid var(--line);
+  padding-top: 24px;
+  scroll-margin-top: 20px;
+}
+.player-choices h2 {
+  font: 500 32px var(--display);
+  margin: 0 0 10px;
+}
+.player-choices p {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.7;
+}
+.player-choices button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  text-align: left;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 14px;
+  margin-top: 8px;
+}
+.player-choices button > span:last-child {
+  margin-left: auto;
+  color: var(--gold);
+}
+.player-choices strong {
+  display: block;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.player-choices small {
+  display: block;
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 6px;
+}
 .steam-link {
   font-size: 10px;
   color: var(--muted);
@@ -1076,7 +1121,7 @@ footer p a {
     margin-right: 9px;
   }
   .search-box input {
-    font-size: 12px;
+    font-size: 16px;
     padding: 14px 0;
     flex-basis: calc(100% - 50px);
     width: 0;

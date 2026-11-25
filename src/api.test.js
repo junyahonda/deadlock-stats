@@ -57,3 +57,47 @@ test("rate-limited match history containing stored data remains usable and label
     globalThis.fetch = original;
   }
 });
+
+test("unindexed vanity URLs explain how to find a numeric Steam ID or share link", async () => {
+  const original = globalThis.fetch;
+  globalThis.fetch = async () => new Response("[]");
+  try {
+    await assert.rejects(
+      resolvePlayer("https://steamcommunity.com/id/not-indexed/"),
+      /Account details.*Steam ID/,
+    );
+  } finally {
+    globalThis.fetch = original;
+  }
+});
+
+test("display-name search asks the user to choose rather than silently picking a fuzzy profile", async () => {
+  const original = globalThis.fetch;
+  globalThis.fetch = async () =>
+    new Response(
+      JSON.stringify([
+        {
+          account_id: 278919272,
+          personaname: "Parzelion",
+          profileurl: "https://steamcommunity.com/id/Parzeli/",
+        },
+        {
+          account_id: 99,
+          personaname: "Other Parzelion",
+          profileurl: "https://steamcommunity.com/id/someone-else/",
+        },
+      ]),
+    );
+  try {
+    await assert.rejects(
+      resolvePlayer("Parzelion"),
+      (error) => error.candidates?.length === 2 && /Choose/.test(error.message),
+    );
+    await assert.rejects(
+      resolvePlayer("https://steamcommunity.com/id/Parzelion/"),
+      /not indexed/,
+    );
+  } finally {
+    globalThis.fetch = original;
+  }
+});

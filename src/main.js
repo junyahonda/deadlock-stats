@@ -1,6 +1,12 @@
 import "./style.css";
 import { fetchPlayer } from "./api.js";
-import { outcome, standardMatches, summarize, STEAM_BASE } from "./stats.js";
+import {
+  outcome,
+  standardMatches,
+  summarize,
+  STEAM_BASE,
+  parsePlayerInput,
+} from "./stats.js";
 import heroes from "./heroes.json";
 import samples from "./samples.json";
 
@@ -11,6 +17,8 @@ const state = {
   player: null,
   loading: false,
   error: "",
+  errorTitle: "Couldn’t load this player.",
+  candidates: [],
   limit: 20,
   show: 8,
   tab: "matches",
@@ -105,6 +113,27 @@ function results() {
 
 function render() {
   app.innerHTML = `${header()}<main>${search()}<div id="result-region" aria-live="polite" aria-busy="${state.loading}">${state.loading ? '<section class="loading-state" role="status"><span class="spinner"></span><h2>Reading the streets…</h2><p>Fetching this player’s latest indexed matches.</p></section>' : state.player ? results() : landing()}</div></main><footer><a class="footer-brand" href="${esc(location.pathname)}">DEADLOCK<span> / STATS</span></a><p>An independent fan project. Not affiliated with Valve.<br>Data & hero art by <a href="https://deadlock-api.com" target="_blank" rel="noreferrer">Deadlock API ${arrow}</a>. Deadlock belongs to Valve.</p><span class="footer-end">PLAY. LEARN. QUEUE AGAIN.</span></footer>`;
+  updateSearchGuidance();
+}
+
+function playerChoices() {
+  return `<section class="player-choices" aria-labelledby="choice-title"><h2 id="choice-title" tabindex="-1">Choose a player</h2><p>Check the account ID: several people can share a display name.</p>${state.candidates.map((p) => `<button type="button" data-lookup="${Number(p.account_id)}">${image(p.avatarfull, "")}<span><strong>${esc(p.personaname)}</strong><small>Steam account ${Number(p.account_id)}</small></span><span aria-hidden="true">→</span></button>`).join("")}</section>`;
+}
+
+function updateSearchGuidance() {
+  document.querySelector("#search-hint").textContent =
+    "Steam ID, custom or display name, profile link, or s.team/p/ share link";
+  document.querySelector("#player-input").placeholder =
+    "Steam ID, player name, or profile link";
+  const errorTitle = document.querySelector("#lookup-error strong");
+  if (errorTitle) errorTitle.textContent = state.errorTitle;
+  if (state.candidates.length) {
+    document.querySelector("#result-region").innerHTML = playerChoices();
+    document.querySelector("#player-input").removeAttribute("aria-invalid");
+    const title = document.querySelector("#choice-title");
+    title.focus({ preventScroll: true });
+    title.scrollIntoView({ block: "start" });
+  }
 }
 
 function revealResults() {
@@ -126,6 +155,19 @@ async function lookup(value) {
   state.loading = true;
   state.error = "";
   state.player = null;
+  state.candidates = [];
+  state.errorTitle = "Couldn’t load this player.";
+  try {
+    parsePlayerInput(state.input);
+  } catch (error) {
+    state.loading = false;
+    state.error = error.message;
+    state.errorTitle = state.input.trim()
+      ? "Check the player input."
+      : "Enter a player to start.";
+    render();
+    return;
+  }
   render();
   const timeout = setTimeout(() => activeController.abort(), 20000);
   try {
@@ -141,6 +183,8 @@ async function lookup(value) {
       error.name === "AbortError"
         ? "The request took too long. Please try again or open a saved demo."
         : error.message;
+    state.candidates = error.candidates ?? [];
+    if (state.candidates.length) state.errorTitle = "Choose a player.";
   } finally {
     clearTimeout(timeout);
     if (serial === request) {
@@ -170,6 +214,7 @@ app.addEventListener("click", (event) => {
     state.input = String(state.player.id);
     state.loading = false;
     state.error = "";
+    state.candidates = [];
     state.show = 8;
     state.tab = "matches";
     history.replaceState(null, "", location.pathname);

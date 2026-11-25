@@ -15,8 +15,9 @@ npm run dev
 
 ## Lookups and data
 
-- Accepts SteamID64 (converted with BigInt, never floating point), account IDs, SteamID2, SteamID3, and `steamcommunity.com/profiles/…` or `/id/…` URLs.
-- Custom profile URLs are resolved through the public API's indexed Steam search, with an **exact profile-URL match**. Unindexed custom URLs need the numeric ID instead; fuzzy matches are never silently selected.
+- Accepts SteamID64 (converted with BigInt, never floating point), account IDs, SteamID2, SteamID3, and `steamcommunity.com/profiles/…` or `/id/…` URLs, including mobile `m.` links and profile sub-pages. Numeric IDs may include spaces or a trailing slash.
+- Steam mobile `s.team/p/…` and `steamcommunity.com/user/…` share links are decoded locally without a Steam key or proxy.
+- Custom profile URLs and bare custom names are resolved through the public API's indexed Steam search, with an **exact profile-URL match**. Bare display names show a player picker; fuzzy matches are never silently selected. Unindexed names explain how to find your numeric ID (Steam → Account details) or use a Steam mobile share link instead.
 - Fetches public data directly from [Deadlock API](https://deadlock-api.com): `/v1/players/{account_id}/match-history`, `/v1/players/steam`, and `/v1/players/steam-search`. Browser CORS is supported by that API.
 - Summary and hero stats consistently cover the selected latest 20, 50, or 100 **indexed standard PvP** matches, not a claim of lifetime totals. Street Brawl, bots, and private lobbies are excluded. Scored wins/losses use `player_match_outcome`; penalized and unscored outcomes are excluded from win-rate denominators. KDA is `(kills + assists) / max(deaths, 1)`.
 - Match-mode IDs come from Valve’s [ECitadelMatchMode protobuf](https://github.com/SteamDatabase/Protobufs/blob/master/deadlock/citadel_gcmessages_common.proto): Unranked = 1, Private Lobby = 2, Ranked = 4. Only game mode Normal = 1 and match modes 1/4 are included.
