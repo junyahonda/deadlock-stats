@@ -42,7 +42,7 @@ test("rejects invalid and lookalike profiles instead of making the wrong lookup"
 const match = (overrides = {}) => ({
   match_id: 1,
   game_mode: 1,
-  match_mode: 2,
+  match_mode: 4,
   hero_id: 4,
   start_time: 10,
   player_match_outcome: 1,
@@ -75,10 +75,14 @@ test("selects standard PvP, deduplicates matches and sorts newest first", () => 
     match({ match_id: 2, start_time: 20 }),
     match({ match_id: 3, game_mode: 2 }),
     match({ match_id: 4, match_mode: 3 }),
+    match({ match_id: 5, match_mode: 2 }),
+    match({ match_id: 6, match_mode: 1, start_time: 30 }),
+    match({ match_id: 7, match_mode: 8 }),
+    match({ match_id: 8, game_mode: 4, match_mode: 1 }),
   ]);
   assert.deepEqual(
     matches.map((m) => m.match_id),
-    [2, 1],
+    [6, 2, 1],
   );
 });
 

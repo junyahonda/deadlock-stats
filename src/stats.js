@@ -87,7 +87,9 @@ export function standardMatches(matches) {
   return [
     ...new Map(
       matches
-        .filter((m) => m.game_mode === 1 && [1, 2].includes(m.match_mode))
+        // Valve ECitadelMatchMode: Unranked=1, PrivateLobby=2, Ranked=4.
+        // https://github.com/SteamDatabase/Protobufs/blob/master/deadlock/citadel_gcmessages_common.proto
+        .filter((m) => m.game_mode === 1 && [1, 4].includes(m.match_mode))
         .map((m) => [m.match_id, m]),
     ).values(),
   ].sort((a, b) => b.start_time - a.start_time);
