@@ -4,6 +4,18 @@ A mobile-first, static Deadlock player dashboard. Look up a Steam account to see
 
 ## Run locally
 
+## Hero intelligence
+
+- **Your top 3 heroes** uses the selected recent-match window and ranks repeatable results using a 95% Wilson win-rate lower bound. Heroes with at least three scored games rank ahead of provisional small samples; KDA breaks ties. Unavailable scores never become losses.
+- **Hero tier list** uses the last seven complete UTC days of global Normal Unranked/Ranked analytics, with at least 100 scored appearances. Tiers use the confidence-adjusted win rate: S ≥54%, A ≥51%, B ≥48%, C below 48%. This is a data-based global view, not a pro-play tier list or matchup prediction.
+- **Top 5 players per hero** means the highest observed hero win rates over the last 30 complete UTC days, requiring at least 20 matches. This is not Valve’s MMR leaderboard, whose name-based account mappings can be ambiguous. Each player links to their own dossier.
+- **Builds** are selected from account-filtered hero-build usage in processed demos. The most-used observed build ID is shown, with public item groups on demand. This is a selected build at match start, not proof that all items were bought, and the player need not be the build’s author. Public build details show the latest version, not necessarily the version observed in the match. Missing build data is explicit; no popular build is substituted.
+- **Improve** compares the same hero and 30-day period with up to five strictly higher-win-rate peers from that scoreboard. The player needs five matches; peers need 20. Per-minute benchmarks are weighted by play time, with missing measurements excluded rather than zero-filled. Up to three supported gaps produce practice suggestions. This is a higher-win-rate proxy, not proof of higher skill or causal coaching; role, opponent strength and decision-making are not controlled. If the sample is insufficient or no gaps are supported, the page says so. Saved demos never mix with live comparisons.
+
+Analytics are requested only when their page or tab is opened. Requests bypass the HTTP/service-worker cache; identical requests may be reused in memory for five minutes. Every view names its date range and sample size. `?view=heroes&hero=<id>` can be shared and supports browser Back/Forward. Hero intelligence needs an internet connection; saved demos and their local top-three ranking remain available offline.
+
+### Local development
+
 Use Node.js 22 or newer:
 
 ```sh

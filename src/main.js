@@ -15,6 +15,7 @@ import infernusCard from "./art/hero-1.webp";
 import wraithCard from "./art/hero-7.webp";
 import { sampleProfiles as samples, loadSample } from "./samples.js";
 import { readPlayers, writePlayers } from "./storage.js";
+import { Intelligence, personalBest } from "./insights-ui.js";
 
 const app = document.querySelector("#app");
 const arrow = '<span aria-hidden="true">↗</span>';
@@ -28,11 +29,14 @@ const state = {
   limit: 20,
   show: 8,
   tab: "matches",
+  page: "player",
+  hero: null,
 };
 let request = 0;
 let controller;
 const playerCache = new Map();
 let recentPlayers = readPlayers();
+const intelligence = new Intelligence(() => renderKeepPosition());
 const heroCards = { 4: geistCard, 1: infernusCard, 7: wraithCard };
 const esc = (s) =>
   String(s ?? "").replace(
@@ -121,13 +125,29 @@ function results() {
 }
 
 function render() {
-  app.innerHTML = `${header()}<main>${search()}<div id="result-region" aria-live="polite" aria-busy="${state.loading}">${state.loading ? '<section class="loading-state" role="status"><span class="spinner"></span><h2>Reading the streets…</h2><p>Fetching this player’s latest indexed matches.</p></section>' : state.player ? results() : landing()}</div></main><footer><a class="footer-brand" href="${esc(location.pathname)}">DEADLOCK<span> / STATS</span></a><p>An independent fan project. Not affiliated with Valve.<br>Data & hero art by <a href="https://deadlock-api.com" target="_blank" rel="noreferrer">Deadlock API ${arrow}</a>. Deadlock belongs to Valve.</p><span class="footer-end">PLAY. LEARN. QUEUE AGAIN.</span></footer>`;
-  updateSearchGuidance();
-  document.querySelector(".search-section").insertAdjacentHTML("beforeend", savedPlayers());
-  updateProfileActions();
-  const title = state.player ? `${state.player.profile.personaname}${state.player.demo ? " (saved demo)" : ""} — Deadlock Stats` : "Deadlock Stats — Know your game.";
+  app.innerHTML = `${header()}<nav class="site-nav" aria-label="Main navigation"><button id="nav-player" data-player-page ${state.page === "player" ? 'aria-current="page"' : ""}>Player stats</button><button id="nav-tiers" data-hero-page="" ${state.page === "tiers" ? 'aria-current="page"' : ""}>Hero tier list</button></nav><main>${state.page === "tiers" ? intelligence.tierPage(state.hero) : `${search()}<div id="result-region" aria-live="polite" aria-busy="${state.loading}">${state.loading ? '<section class="loading-state" role="status"><span class="spinner"></span><h2>Reading the streets…</h2><p>Fetching this player’s latest indexed matches.</p></section>' : state.player ? results() : landing()}</div>`}</main><footer><a class="footer-brand" href="${esc(location.pathname)}">DEADLOCK<span> / STATS</span></a><p>An independent fan project. Not affiliated with Valve.<br>Data & hero art by <a href="https://deadlock-api.com" target="_blank" rel="noreferrer">Deadlock API ${arrow}</a>. Deadlock belongs to Valve.</p><span class="footer-end">PLAY. LEARN. QUEUE AGAIN.</span></footer>`;
+  if (state.page === "player") {
+    updateSearchGuidance();
+    document.querySelector(".search-section").insertAdjacentHTML("beforeend", savedPlayers());
+    updateProfileActions();
+    updateInsights();
+  }
+  const title = state.page === "tiers" ? `${state.hero ? heroName(state.hero) + " players & builds" : "Hero tier list"} — Deadlock Stats` : state.player ? `${state.player.profile.personaname}${state.player.demo ? " (saved demo)" : ""} — Deadlock Stats` : "Deadlock Stats — Know your game.";
   document.title = title;
   document.querySelector('meta[property="og:title"]').content = title;
+}
+
+function updateInsights() {
+  const grid = document.querySelector(".stat-grid");
+  if (!grid || !state.player) return;
+  const matches = standardMatches(state.player.matches).slice(0, state.limit);
+  grid.insertAdjacentHTML("afterend", personalBest(matches, state.limit));
+  document.querySelector(".tabs").insertAdjacentHTML("beforeend", `<button id="improve-tab" role="tab" aria-controls="stats-panel" aria-selected="${state.tab === "improve"}" data-tab="improve">Improve</button>`);
+  if (state.tab === "improve") {
+    document.querySelector("#stats-panel").innerHTML = intelligence.improvementPanel(state.player);
+    document.querySelector(".panel-note").textContent = "SAME-HERO PEERS";
+  }
+  document.querySelectorAll('[role="tab"]').forEach((tab) => { tab.tabIndex = tab.getAttribute("aria-selected") === "true" ? 0 : -1; });
 }
 
 function savedPlayers() {
@@ -154,6 +174,7 @@ function updateSavedName(player) {
 function updateProfileActions() {
   const refresh = document.querySelector(".profile-top .refresh");
   if (!refresh || !state.player) return;
+  refresh.id = "refresh-player";
   const actions = document.createElement("div");
   actions.className = "profile-actions";
   refresh.replaceWith(actions);
@@ -333,6 +354,7 @@ async function lookup(value, { navigation = "push", preserveRoute = false, profi
   controller = new AbortController();
   const activeController = controller;
   const serial = ++request;
+  state.page = "player";
   state.input = String(value);
   state.loading = true;
   state.error = "";
@@ -412,6 +434,7 @@ app.addEventListener("input", (event) => {
 function showSavedPlayer(player, navigation = "push") {
   controller?.abort();
   request++;
+  state.page = "player";
   if (!player.demo) player.previous = true;
   state.player = player;
   state.input = String(player.id);
@@ -428,6 +451,7 @@ function showSavedPlayer(player, navigation = "push") {
 async function openDemo(id, navigation = "push", { preserveRoute = false } = {}) {
   controller?.abort();
   const serial = ++request;
+  state.page = "player";
   state.loading = true;
   state.error = "";
   state.candidates = [];
@@ -447,13 +471,25 @@ async function openDemo(id, navigation = "push", { preserveRoute = false } = {})
 function showHome(navigation = "push") {
   controller?.abort();
   request++;
-  Object.assign(state, { player: null, input: "", loading: false, error: "", candidates: [] });
+  Object.assign(state, { player: null, input: "", loading: false, error: "", candidates: [], page: "player", hero: null });
   if (navigation !== "none") {
     const method = location.search ? "pushState" : "replaceState";
     history[method]({ key: "home" }, "", pageUrl(null));
   }
   render();
   window.scrollTo(0, 0);
+}
+
+function showTiers(heroId = null, navigation = "push") {
+  controller?.abort();
+  request++;
+  Object.assign(state, { page: "tiers", hero: heroId, loading: false, error: "", candidates: [] });
+  const url = `${location.pathname}?view=heroes${heroId ? `&hero=${heroId}` : ""}`;
+  if (navigation !== "none" && location.pathname + location.search !== url) history.pushState({ key: `tiers:${heroId ?? "all"}` }, "", url);
+  render();
+  const title = document.querySelector(heroId ? "#hero-leader-title" : "#tier-title");
+  title?.focus({ preventScroll: true });
+  title?.scrollIntoView({ block: "start" });
 }
 
 app.addEventListener("click", (event) => {
@@ -465,6 +501,12 @@ app.addEventListener("click", (event) => {
   }
   const button = event.target.closest("button");
   if (!button) return;
+  if (button.hasAttribute("data-hero-page")) { showTiers(Number(button.dataset.heroPage) || null); return; }
+  if (button.hasAttribute("data-player-page")) {
+    if (state.player) showSavedPlayer(state.player); else showHome();
+    return;
+  }
+  if (intelligence.click(button, state.player)) { renderKeepPosition(); return; }
   if (button.dataset.lookup) {
     const id = Number(button.dataset.lookup);
     const profileHint = state.candidates.find((p) => p.account_id === id) ?? (state.player?.id === id ? state.player.profile : undefined);
@@ -510,18 +552,18 @@ app.addEventListener("keydown", (event) => {
   )
     return;
   event.preventDefault();
-  state.tab =
-    event.key === "Home"
-      ? "matches"
-      : event.key === "End"
-        ? "heroes"
-        : state.tab === "matches"
-          ? "heroes"
-          : "matches";
+  const tabs = ["matches", "heroes", "improve"];
+  const current = tabs.indexOf(state.tab);
+  state.tab = event.key === "Home" ? tabs[0] : event.key === "End" ? tabs.at(-1) : tabs[(current + (event.key === "ArrowRight" ? 1 : 2)) % tabs.length];
   render();
   document.querySelector(`#${state.tab}-tab`)?.focus({ preventScroll: true });
 });
 app.addEventListener("change", (event) => {
+  if (event.target.id === "comparison-hero" && state.player) {
+    intelligence.selectedHeroes.set(state.player.id, Number(event.target.value));
+    renderKeepPosition();
+    return;
+  }
   if (event.target.id === "match-window") {
     state.limit = Number(event.target.value);
     state.show = 8;
@@ -539,6 +581,10 @@ app.addEventListener(
 );
 function openLocation() {
   const params = new URLSearchParams(location.search);
+  if (params.get("view") === "heroes") {
+    const hero = Number(params.get("hero"));
+    return showTiers(Number.isSafeInteger(hero) && hero > 0 && hero < 10000 ? hero : null, "none");
+  }
   const demo = params.get("demo");
   const id = demo || params.get("player");
   const key = `${demo ? "demo" : "live"}:${id}`;

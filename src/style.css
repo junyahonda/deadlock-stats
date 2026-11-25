@@ -1877,3 +1877,109 @@ select {
     flex-basis: auto;
   }
 }
+
+/* Player intelligence: compact cards and readable, touch-sized controls. */
+.site-nav { display: flex; gap: 8px; max-width: 1220px; margin: 0 auto; padding: 0 28px 12px; border-bottom: 1px solid var(--line); }
+.site-nav button, .insight-button { min-height: 44px; border: 1px solid var(--line); border-radius: 6px; padding: 10px 16px; background: #19352e; color: #e5e8d9; font: 500 14px var(--body, sans-serif); }
+.site-nav button[aria-current], .tier-hero[aria-pressed="true"] { border-color: var(--gold); color: var(--gold); background: #293c2d; }
+.personal-best { margin: 28px 0 16px; padding: 24px; border: 1px solid var(--line); border-radius: 10px; background: #142a24; }
+.insight-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
+.insight-heading h2, .insight-heading h3 { margin: 6px 0 0; font: 500 28px var(--display); }
+.insight-heading p { margin: 0; line-height: 1.6; }
+.insight-tag { color: var(--gold); border: 1px solid var(--line); padding: 6px 10px; border-radius: 5px; font-size: 12px; }
+.best-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.best-card { padding: 18px; border: 1px solid var(--line); border-radius: 8px; background: #10231e; min-width: 0; }
+.best-rank { color: var(--gold); font: 500 24px var(--display); }
+.hero-jump { width: 100%; display: flex; align-items: center; gap: 10px; background: transparent; border: 0; padding: 8px 0; min-height: 52px; text-align: left; color: #e5e8d9; }
+.hero-jump img, .tier-hero img { flex-shrink: 0; width: 44px; height: 44px; object-fit: cover; border-radius: 5px; }
+.hero-jump strong { font-size: 18px; overflow-wrap: anywhere; }
+.best-win { display: block; font: 500 30px var(--display); margin-top: 8px; color: #cddfab; }
+.best-win small { font: 400 13px var(--body, sans-serif); color: #b3c5af; }
+.best-card p { font-size: 13px; line-height: 1.65; color: #b3c5af; margin-bottom: 0; }
+.methodology { margin: 16px 0; font-size: 13px; color: #b3c5af; line-height: 1.65; }
+.methodology summary { min-height: 44px; padding: 10px 0; cursor: pointer; color: #d6dfc8; }
+.methodology p { max-width: 80ch; }
+.intelligence-page { padding: 36px 0; }
+.intelligence-page h1 { font: 500 clamp(36px, 7vw, 64px) var(--display); margin: 16px 0; }
+.intelligence-page h1 span { color: var(--gold); }
+.insight-intro { max-width: 58ch; font-size: 18px; line-height: 1.6; color: #b3c5af; margin-bottom: 28px; }
+.insight-footnote, .intelligence-page small { font-size: 12px; color: #b3c5af; line-height: 1.65; }
+.insight-empty { color: #b3c5af; font-size: 14px; line-height: 1.7; padding: 12px 0; margin: 0; }
+.insight-status { display: flex; align-items: center; gap: 12px; min-height: 54px; color: #d6dfc8; font-size: 14px; }
+.insight-status .spinner { width: 22px; height: 22px; margin: 0; }
+.tier-list { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; margin-top: 22px; }
+.tier-row { display: grid; grid-template-columns: 64px minmax(0, 1fr); border-bottom: 1px solid var(--line); }
+.tier-row:last-child { border-bottom: 0; }
+.tier-row h2 { margin: 0; background: #293c2d; color: var(--gold); font: 500 34px var(--display); display: flex; align-items: center; justify-content: center; }
+.tier-a h2 { color: #b1d9a3; background: #233c2c; }
+.tier-b h2 { color: #a6c9bf; background: #1f3532; }
+.tier-c h2 { color: #b7bfd0; background: #29313c; }
+.tier-row > div { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; padding: 12px; background: #122820; }
+.tier-hero { display: flex; align-items: center; min-height: 70px; gap: 10px; padding: 10px; background: #19352b; color: #e5e8d9; border: 1px solid var(--line); border-radius: 6px; text-align: left; }
+.tier-hero strong { display: block; font-size: 15px; overflow-wrap: anywhere; }
+.tier-hero small { display: block; margin-top: 3px; }
+.hero-leaderboard { border-top: 1px solid var(--line); margin-top: 38px; padding-top: 32px; scroll-margin-top: 24px; }
+.hero-leaderboard > p { line-height: 1.7; }
+.leader-list { list-style: none; padding: 0; margin: 20px 0; display: grid; gap: 16px; }
+.leader-card { border: 1px solid var(--line); background: #132c24; border-radius: 8px; padding: 22px; }
+.leader-summary { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 12px; align-items: center; }
+.leader-summary > strong { text-align: right; color: #cddfab; font: 500 26px var(--display); }
+.leader-summary small { display: block; }
+.player-jump { min-height: 44px; padding: 6px 0; background: transparent; border: 0; color: #dce4c7; font-size: 17px; font-weight: 600; text-align: left; overflow-wrap: anywhere; }
+.observed-build { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--line); font-size: 14px; }
+.observed-build p { line-height: 1.65; }
+.build-details { padding: 18px; margin-top: 18px; background: #10231e; border-radius: 6px; overflow-wrap: anywhere; }
+.build-details h3 { margin-top: 0; }
+.build-details h4 { font-size: 14px; color: var(--gold); margin-bottom: 10px; }
+.build-items { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; padding: 0; }
+.build-items li { background: #233b30; border: 1px solid var(--line); padding: 8px 10px; border-radius: 5px; font-size: 13px; }
+.build-items small { display: block; }
+.matches-panel > .panel-heading { min-height: 54px; height: auto; align-items: center; flex-wrap: wrap; }
+.matches-panel .tabs { height: auto; gap: 18px; flex-wrap: wrap; }
+.matches-panel .tabs button { min-height: 48px; font-size: 20px; padding: 8px 0; }
+.improvement-panel { padding: 24px 0; line-height: 1.7; font-size: 14px; }
+.improvement-panel h3 { font-size: 28px; }
+.comparison-picker { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 20px 0; color: #dce4c7; }
+.comparison-picker select { min-height: 44px; max-width: 100%; padding: 10px; color: #e5e8d9; background: #19352b; border: 1px solid var(--line); border-radius: 5px; font-size: 16px; }
+.self-sample { padding: 12px; border-left: 2px solid var(--gold); background: #19352b; }
+.comparison-summary { display: grid; gap: 4px; margin: 22px 0; }
+.comparison-summary span { font-size: 13px; color: #b3c5af; }
+.gap-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.gap-table caption { text-align: left; font-size: 12px; color: #b3c5af; padding-bottom: 12px; }
+.gap-table th, .gap-table td { border-bottom: 1px solid var(--line); padding: 13px 10px; text-align: right; font-variant-numeric: tabular-nums; }
+.gap-table th:first-child { width: 52%; text-align: left; padding-left: 0; }
+.gap-table tbody th { font-weight: 500; }
+.gap-table small { display: block; color: #b3c5af; font-size: 12px; line-height: 1.5; }
+.priorities-heading { margin: 24px 0 12px; font-size: 18px; }
+.priority-list { padding-left: 22px; }
+.priority-list li { padding: 8px 0; }
+.priority-list p { color: #b3c5af; margin: 8px 0; }
+.peer-list { padding-left: 18px; }
+.peer-list .player-jump { font-size: 14px; }
+@media (max-width: 700px) {
+  .site-nav { padding: 0 20px 12px; }
+  .best-grid { grid-template-columns: 1fr; gap: 10px; }
+  .personal-best { padding: 18px; }
+  .best-card { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; align-items: center; column-gap: 10px; padding: 12px; }
+  .best-card .hero-jump { grid-column: 2; }
+  .best-card .hero-jump img { width: 36px; height: 36px; }
+  .best-card .hero-jump strong { font-size: 15px; }
+  .best-card .best-win { font-size: 25px; margin: 0; text-align: right; }
+  .best-card .best-win small { display: block; }
+  .best-card p { grid-column: 2 / -1; margin: 2px 0 0; }
+  .tier-row { grid-template-columns: 40px minmax(0, 1fr); }
+  .tier-row > div { grid-template-columns: 1fr; padding: 8px; }
+  .tier-row h2 { font-size: 28px; }
+  .leader-card { padding: 16px; }
+  .leader-summary { grid-template-columns: 26px minmax(0, 1fr) auto; gap: 8px; }
+  .leader-summary > strong { font-size: 24px; }
+  .player-jump { font-size: 16px; }
+  .insight-heading h2 { font-size: 28px; }
+  .matches-panel .tabs { gap: 18px; }
+  .matches-panel .tabs button { font-size: 20px; }
+  .matches-panel .panel-note { display: none; }
+}
+@media (max-height: 500px) and (orientation: landscape) {
+  .site-nav { padding-bottom: 4px; }
+  .site-nav button { min-height: 44px; padding: 6px 12px; }
+}
