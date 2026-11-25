@@ -15,15 +15,19 @@ async function json(path, params = {}, { refresh = false } = {}) {
   const entry = cache.get(url);
   if (!refresh && entry && Date.now() - entry.at < TTL) return entry.promise;
   const promise = (async () => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+    try {
     let response;
     try {
-      response = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(15000) });
+      response = await fetch(url, { cache: "no-store", signal: controller.signal });
     } catch {
       throw new Error("Couldn’t reach the stats service. Go online and try again.");
     }
     if (response.status === 429) throw new Error("The stats service is busy. Wait a moment, then retry.");
     if (!response.ok) throw new Error("This data is currently unavailable from the stats service. Try again shortly.");
     try { return await response.json(); } catch { throw new Error("The stats service returned an unreadable response. Please retry."); }
+    } finally { clearTimeout(timeout); }
   })();
   const record = { at: Date.now(), promise };
   cache.set(url, record);

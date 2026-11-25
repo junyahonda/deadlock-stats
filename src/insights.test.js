@@ -70,6 +70,18 @@ test("live tier requests are uncached standard PvP analytics with explicit dates
   } finally { globalThis.fetch = original; }
 });
 
+test("analytics still send requests when AbortSignal.timeout is unavailable", async () => {
+  const original = globalThis.fetch;
+  const originalTimeout = AbortSignal.timeout;
+  AbortSignal.timeout = undefined;
+  let requested = false;
+  try {
+    globalThis.fetch = async (_, { signal }) => { requested = true; assert.ok(signal instanceof AbortSignal); return Response.json([]); };
+    await fetchTiers({ start: 501, end: 502 }, true);
+    assert.equal(requested, true);
+  } finally { globalThis.fetch = original; AbortSignal.timeout = originalTimeout; }
+});
+
 test("leader builds are filtered to that account and not replaced when missing", async () => {
   const original = globalThis.fetch;
   try {
