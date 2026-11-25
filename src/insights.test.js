@@ -108,3 +108,22 @@ test("API failures stay actionable; comparisons recheck peer eligibility", async
     assert.equal(result.peers.length, 0);
   } finally { globalThis.fetch = original; }
 });
+
+test("refreshing comparison fetches fresh peers and recomputes their benchmark", async () => {
+  const original = globalThis.fetch;
+  let requests = 0;
+  let benchmark = 1000;
+  try {
+    globalThis.fetch = async (url) => {
+      requests++;
+      return Response.json(url.includes("scoreboards") ? [{ account_id: 11, matches: 20, value: 0.9 }] : [peer(11, { networth_per_min: benchmark })]);
+    };
+    const window = { start: 601, end: 602 };
+    const first = await fetchComparison(self, window);
+    benchmark = 2000;
+    const fresh = await fetchComparison(self, window, true);
+    assert.equal(requests, 4);
+    assert.equal(first.metrics.find((m) => m.key === "networth_per_min").peer, 1000);
+    assert.equal(fresh.metrics.find((m) => m.key === "networth_per_min").peer, 2000);
+  } finally { globalThis.fetch = original; }
+});
