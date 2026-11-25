@@ -2,6 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { fetchPlayer, resolvePlayer } from "./api.js";
 
+const validMatch = { match_id: 1, game_mode: 1, match_mode: 4, hero_id: 4, start_time: 100, player_kills: 5, player_deaths: 1, player_assists: 9, net_worth: 10000, match_duration_s: 600 };
+
 test("a browser network failure gives an actionable offline message", async () => {
   const original = globalThis.fetch;
   globalThis.fetch = async () => {
@@ -47,12 +49,12 @@ test("rate-limited match history containing stored data remains usable and label
   globalThis.fetch = async (url) =>
     url.includes("match-history")
       ? new Response("[]", { status: 429 })
-      : new Response("[]");
+      : new Response(JSON.stringify([{ account_id: 399289886, personaname: "C9 Average" }]));
   try {
     const player = await fetchPlayer("399289886");
     assert.equal(player.stored, true);
     assert.equal(player.demo, false);
-    assert.equal(player.profile.personaname, "Steam account 399289886");
+    assert.equal(player.profile.personaname, "C9 Average");
   } finally {
     globalThis.fetch = original;
   }
@@ -113,11 +115,11 @@ test(
         ? new Promise((resolve) => {
             resolveProfile = resolve;
           })
-        : new Response("[]");
+        : new Response(JSON.stringify([validMatch]));
     try {
       const player = await fetchPlayer("399289886");
       assert.equal(player.profileStatus, "loading");
-      assert.deepEqual(player.matches, []);
+      assert.deepEqual(player.matches, [validMatch]);
       resolveProfile(
         new Response(
           JSON.stringify([
@@ -146,7 +148,7 @@ test("malformed match records and HTML responses show readable errors, not rende
   }
 });
 
-test("history 404 is distinct from service failure and empty profiles remain unverified", async () => {
+test("history 404 and empty unknown profiles show not-found instead of a synthetic live profile", async () => {
   const original = globalThis.fetch;
   try {
     globalThis.fetch = async (url) =>
@@ -155,8 +157,8 @@ test("history 404 is distinct from service failure and empty profiles remain unv
         : new Response("[]");
     await assert.rejects(fetchPlayer("4"), /No indexed profile.*Check the ID/);
     globalThis.fetch = async () => new Response("[]");
-    const player = await fetchPlayer("4");
-    assert.equal((await player.profilePromise).status, "missing");
+    await assert.rejects(fetchPlayer("4"), /No indexed profile.*Check the ID/);
+    await assert.rejects(fetchPlayer("4294967295"), /No indexed profile.*Check the ID/);
   } finally {
     globalThis.fetch = original;
   }

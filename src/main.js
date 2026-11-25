@@ -2,13 +2,19 @@ import "./style.css";
 import { fetchPlayer } from "./api.js";
 import {
   outcome,
+  outcomeDescription,
+  outcomeMark,
   standardMatches,
   summarize,
   STEAM_BASE,
   parsePlayerInput,
 } from "./stats.js";
 import heroes from "./heroes.json";
-import samples from "./samples.json";
+import geistCard from "./art/hero-4.webp";
+import infernusCard from "./art/hero-1.webp";
+import wraithCard from "./art/hero-7.webp";
+import { sampleProfiles as samples, loadSample } from "./samples.js";
+import { readPlayers, writePlayers } from "./storage.js";
 
 const app = document.querySelector("#app");
 const arrow = '<span aria-hidden="true">↗</span>';
@@ -26,6 +32,8 @@ const state = {
 let request = 0;
 let controller;
 const playerCache = new Map();
+let recentPlayers = readPlayers();
+const heroCards = { 4: geistCard, 1: infernusCard, 7: wraithCard };
 const esc = (s) =>
   String(s ?? "").replace(
     /[&<>"']/g,
@@ -62,7 +70,7 @@ function header() {
 }
 
 function search() {
-  return `<section class="search-section" aria-labelledby="search-title"><div class="eyebrow"><span class="tiny-line"></span> YOUR GAME, IN FOCUS</div><div class="intro-grid"><div><h1 id="search-title">Know your game.<br><em>Own the next one.</em></h1><p class="intro">Every match tells a story. Find your form, your heroes,<br class="desktop-break"> and your next edge.</p></div><div class="hero-art" aria-hidden="true"><span class="art-orbit"></span>${[4, 1, 7].map((id) => `<img src="${esc(heroes[id]?.card)}" alt="" />`).join("")}<span class="art-stamp">EVERY MATCH.<br>A NEW STORY.</span></div></div><form id="search-form" novalidate><label for="player-input">FIND A PLAYER</label><div class="search-box"><span class="search-icon" aria-hidden="true">⌕</span><input id="player-input" name="player" type="text" value="${esc(state.input)}" placeholder="Steam ID or Steam profile link" autocomplete="off" spellcheck="false" autocapitalize="off" aria-describedby="search-hint${state.error ? " lookup-error" : ""}" ${state.error ? 'aria-invalid="true"' : ""} /><button class="primary" type="submit" ${state.loading ? "disabled" : ""}>${state.loading ? "Searching…" : "Look up player"} <span aria-hidden="true">→</span></button></div><p id="search-hint" class="input-hint">Steam ID64, account ID, or steamcommunity.com/id/your-name</p></form><div class="quick-profiles"><span>TRY A PLAYER</span>${samples.map((s) => `<button type="button" data-lookup="${s.id}">${esc(s.profile.personaname)} ${arrow}</button>`).join("")}</div>${state.error ? `<div class="notice error" id="lookup-error" role="alert"><strong>Couldn’t load this player.</strong> ${esc(state.error)} <button type="button" data-demo="0">Explore a saved demo →</button></div>` : ""}</section>`;
+  return `<section class="search-section" aria-labelledby="search-title"><div class="eyebrow"><span class="tiny-line"></span> YOUR GAME, IN FOCUS</div><div class="intro-grid"><div><h1 id="search-title">Know your game.<br><em>Own the next one.</em></h1><p class="intro">Every match tells a story. Find your form, your heroes,<br class="desktop-break"> and your next edge.</p></div><div class="hero-art" aria-hidden="true"><span class="art-orbit"></span>${[4, 1, 7].map((id) => `<img loading="lazy" decoding="async" src="${heroCards[id]}" alt="" />`).join("")}<span class="art-stamp">EVERY MATCH.<br>A NEW STORY.</span></div></div><form id="search-form" novalidate><label for="player-input">FIND A PLAYER</label><div class="search-box"><span class="search-icon" aria-hidden="true">⌕</span><input id="player-input" name="player" type="text" value="${esc(state.input)}" placeholder="Steam ID or Steam profile link" autocomplete="off" spellcheck="false" autocapitalize="off" aria-describedby="search-hint${state.error ? " lookup-error" : ""}" ${state.error ? 'aria-invalid="true"' : ""} /><button class="primary" type="submit" ${state.loading ? "disabled" : ""}>${state.loading ? "Searching…" : "Look up player"} <span aria-hidden="true">→</span></button></div><p id="search-hint" class="input-hint">Steam ID64, account ID, or steamcommunity.com/id/your-name</p></form><div class="quick-profiles"><span>TRY A PLAYER</span>${samples.map((s) => `<button type="button" data-lookup="${s.id}">${esc(s.profile.personaname)} ${arrow}</button>`).join("")}</div>${state.error ? `<div class="notice error" id="lookup-error" role="alert"><strong>Couldn’t load this player.</strong> ${esc(state.error)} <button type="button" data-demo="0">Explore a saved demo →</button></div>` : ""}</section>`;
 }
 
 function landing() {
@@ -74,7 +82,7 @@ function matchList(matches) {
     .slice(0, state.show)
     .map((m) => {
       const result = outcome(m);
-      return `<article class="match-row ${result}"><div class="match-identity"><span class="result-dot" aria-label="${result}">${result === "win" ? "W" : result === "loss" ? "L" : "–"}</span>${heroImage(m.hero_id)}<div><strong>${esc(heroName(m.hero_id))}</strong><small>${date(m.start_time)} <span>· ${result === "win" ? "Victory" : result === "loss" ? "Defeat" : "Unscored"}</span></small></div></div><div class="match-kda"><strong>${m.player_kills} <b>/</b> ${m.player_deaths} <b>/</b> ${m.player_assists}</strong><small>${ratio((m.player_kills + m.player_assists) / Math.max(1, m.player_deaths))} KDA</small></div><div class="match-souls">${(m.net_worth / 1000).toFixed(1)}k</div><div class="match-time">${time(m.match_duration_s)}<small>#${m.match_id}</small></div></article>`;
+      return `<article class="match-row ${result}"><div class="match-identity"><span class="result-dot" aria-label="${esc(outcomeDescription(m))}">${outcomeMark(m)}</span>${heroImage(m.hero_id)}<div><strong>${esc(heroName(m.hero_id))}</strong><small>${date(m.start_time)} <span>· ${esc(outcomeDescription(m))}</span></small></div></div><div class="match-kda"><strong>${m.player_kills} <b>/</b> ${m.player_deaths} <b>/</b> ${m.player_assists}</strong><small>${ratio((m.player_kills + m.player_assists) / Math.max(1, m.player_deaths))} KDA${m.player_deaths === 0 ? " · deathless" : ""}</small></div><div class="match-souls">${(m.net_worth / 1000).toFixed(1)}k</div><div class="match-time">${time(m.match_duration_s)}<small>#${m.match_id}</small></div></article>`;
     })
     .join(
       "",
@@ -86,7 +94,7 @@ function heroList(heroStats, all = false) {
     .slice(0, all ? Infinity : 5)
     .map((h, i) => {
       const stats = summarize(h.matches);
-      return `<article class="hero-row"><span class="hero-index">${String(i + 1).padStart(2, "0")}</span>${heroImage(h.id)}<div class="hero-detail"><strong>${esc(heroName(h.id))}</strong><small>${h.matches.length} ${h.matches.length === 1 ? "match" : "matches"} · ${ratio(stats.kda)} KDA</small><div class="hero-bar"><i style="width:${stats.winRate ?? 0}%"></i></div></div><div class="hero-rate">${percent(stats.winRate)}<small>win rate</small></div></article>`;
+      return `<article class="hero-row"><span class="hero-index">${String(i + 1).padStart(2, "0")}</span>${heroImage(h.id)}<div class="hero-detail"><strong>${esc(heroName(h.id))}</strong><small>${h.matches.length} ${h.matches.length === 1 ? "match" : "matches"} · ${ratio(stats.kda)} KDA</small><div class="hero-bar"><i style="width:${stats.winRate ?? 0}%"></i></div></div><div class="hero-rate">${percent(stats.winRate)}<small>${stats.scored ? `win rate · ${stats.scored} scored` : "no scored results"}</small></div></article>`;
     })
     .join("")}</div>`;
 }
@@ -103,18 +111,79 @@ function results() {
           .reverse()
           .map(
             (m) =>
-              `<span class="${outcome(m)}" title="${esc(heroName(m.hero_id))}: ${outcome(m)}">${outcome(m) === "win" ? "W" : outcome(m) === "loss" ? "L" : "–"}</span>`,
+              `<span class="${outcome(m)}" title="${esc(heroName(m.hero_id))}: ${esc(outcomeDescription(m))}">${outcomeMark(m)}</span>`,
           )
           .join(
             "",
           )}</div><small>Oldest <span aria-hidden="true">────────→</span> Newest</small></div></aside></div>`
       : `<div class="empty-state"><h3>No matches found. A fresh start?</h3><p>This player may be new, private, or not indexed by the API. Try another Steam profile or one of the saved demos.</p><button class="text-button" data-demo="0">Explore a saved demo →</button></div>`
-  }<p class="data-footnote">${player.demo ? "Snapshot" : "Fetched"} ${new Date(player.fetchedAt).toLocaleString()} · Standard PvP only. API coverage can be incomplete or delayed. Win rate excludes unscored matches; KDA divides by at least one death.</p></section>`;
+  }<p class="data-footnote">${player.demo ? "Snapshot" : "Fetched"} ${new Date(player.fetchedAt).toLocaleString()} · Standard PvP only. API coverage can be incomplete or delayed. Win rate counts only scored wins/losses; penalties, not-scored and unavailable scores are excluded. Team results are separate from scoring eligibility. KDA divides by at least one death.</p></section>`;
 }
 
 function render() {
   app.innerHTML = `${header()}<main>${search()}<div id="result-region" aria-live="polite" aria-busy="${state.loading}">${state.loading ? '<section class="loading-state" role="status"><span class="spinner"></span><h2>Reading the streets…</h2><p>Fetching this player’s latest indexed matches.</p></section>' : state.player ? results() : landing()}</div></main><footer><a class="footer-brand" href="${esc(location.pathname)}">DEADLOCK<span> / STATS</span></a><p>An independent fan project. Not affiliated with Valve.<br>Data & hero art by <a href="https://deadlock-api.com" target="_blank" rel="noreferrer">Deadlock API ${arrow}</a>. Deadlock belongs to Valve.</p><span class="footer-end">PLAY. LEARN. QUEUE AGAIN.</span></footer>`;
   updateSearchGuidance();
+  document.querySelector(".search-section").insertAdjacentHTML("beforeend", savedPlayers());
+  updateProfileActions();
+  const title = state.player ? `${state.player.profile.personaname}${state.player.demo ? " (saved demo)" : ""} — Deadlock Stats` : "Deadlock Stats — Know your game.";
+  document.title = title;
+  document.querySelector('meta[property="og:title"]').content = title;
+}
+
+function savedPlayers() {
+  if (!recentPlayers.length) return "";
+  return `<div class="saved-players"><span class="section-label">RECENT & FAVORITE PLAYERS · SAVED ON THIS DEVICE</span><div>${recentPlayers.map((p) => `<button type="button" ${p.demo ? `data-saved-demo="${p.id}"` : `data-lookup="${p.id}"`}>${p.favorite ? '<span aria-hidden="true">★ </span>' : ""}${esc(p.name)}${p.demo ? " · demo" : ""}</button>`).join("")}<button type="button" data-clear-recent>Clear saved players</button></div></div>`;
+}
+
+function saveRecent(player) {
+  const previous = recentPlayers.find((p) => p.id === player.id && p.demo === player.demo);
+  const entry = { id: player.id, name: player.profile.personaname, demo: player.demo, favorite: previous?.favorite ?? false };
+  const others = recentPlayers.filter((p) => p.id !== player.id || p.demo !== player.demo);
+  const ordered = [entry, ...others];
+  recentPlayers = [...ordered.filter((p) => p.favorite), ...ordered.filter((p) => !p.favorite)].slice(0, 16);
+  writePlayers(recentPlayers);
+}
+
+function updateProfileActions() {
+  const refresh = document.querySelector(".profile-top .refresh");
+  if (!refresh || !state.player) return;
+  const actions = document.createElement("div");
+  actions.className = "profile-actions";
+  refresh.replaceWith(actions);
+  actions.append(refresh);
+  const favorite = recentPlayers.some((p) => p.id === state.player.id && p.demo === state.player.demo && p.favorite);
+  actions.insertAdjacentHTML("beforeend", `<button type="button" data-share>Share / copy link</button><button type="button" data-favorite aria-pressed="${favorite}">${favorite ? "★ Favorited" : "☆ Favorite"}</button><span id="share-status" role="status"></span>`);
+}
+
+function pageUrl(player = state.player) {
+  return `${location.pathname}${player ? `?${player.demo ? "demo" : "player"}=${player.id}` : ""}`;
+}
+
+function restoreCurrentUrl() {
+  history.replaceState({ key: state.player ? `${state.player.demo ? "demo" : "live"}:${state.player.id}` : "home" }, "", pageUrl());
+}
+
+async function sharePlayer() {
+  const url = new URL(pageUrl(), location.origin).href;
+  const message = document.querySelector("#share-status");
+  try {
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: document.title, url });
+        return;
+      } catch (error) {
+        if (error.name === "AbortError") return;
+      }
+    }
+    await navigator.clipboard.writeText(url);
+    if (message?.isConnected) message.textContent = "Link copied.";
+  } catch {
+    if (!message?.isConnected) return;
+    message.innerHTML = `<label>Copy this link <input readonly value="${esc(url)}" aria-label="Profile link to copy"></label>`;
+    const input = message.querySelector("input");
+    input.focus();
+    input.select();
+  }
 }
 
 function playerChoices() {
@@ -122,6 +191,7 @@ function playerChoices() {
 }
 
 function updateSearchGuidance() {
+  document.querySelector(".brand").removeAttribute("aria-label");
   document.querySelector("#search-hint").textContent =
     "Steam ID, custom or display name, profile link, or s.team/p/ share link";
   document.querySelector("#player-input").placeholder =
@@ -164,6 +234,30 @@ function updateSearchGuidance() {
   }
   const heading = region.querySelector("#player-title");
   heading?.setAttribute("tabindex", "-1");
+  if (state.player) {
+    const matches = standardMatches(state.player.matches).slice(0, state.limit);
+    const stats = summarize(matches);
+    const winLabel = region.querySelector(".stat-card.featured > small");
+    if (winLabel)
+      winLabel.textContent = `${stats.wins} ${stats.wins === 1 ? "win" : "wins"} · ${stats.losses} ${stats.losses === 1 ? "loss" : "losses"} · ${stats.scored}/${stats.total} scored outcomes`;
+    const kdaLabel = region.querySelector(".stat-card:nth-child(2) > small");
+    if (kdaLabel) kdaLabel.textContent = "(kills + assists) / deaths (min. 1)";
+    if (!matches.length && state.player.matches.length) {
+      const title = region.querySelector(".empty-state h3");
+      const copy = region.querySelector(".empty-state p");
+      if (title) title.textContent = "No standard PvP matches in this history.";
+      if (copy)
+        copy.textContent =
+          "The indexed matches are from other modes. This dashboard includes unranked and ranked standard PvP, not private lobbies, bots, or Street Brawl.";
+    }
+    region
+      .querySelectorAll('[role="tab"]')
+      .forEach(
+        (tab) =>
+          (tab.tabIndex =
+            tab.getAttribute("aria-selected") === "true" ? 0 : -1),
+      );
+  }
   if (state.candidates.length) {
     document.querySelector("#result-region").innerHTML = playerChoices();
     document.querySelector("#player-input").removeAttribute("aria-invalid");
@@ -188,6 +282,7 @@ function rememberPlayer(player, navigation = "push") {
   playerCache.set(key, player);
   if (playerCache.size > 12)
     playerCache.delete(playerCache.keys().next().value);
+  saveRecent(player);
   if (navigation !== "none") {
     const url = `${location.pathname}?${player.demo ? "demo" : "player"}=${player.id}`;
     const method =
@@ -231,6 +326,7 @@ async function lookup(value, { navigation = "push" } = {}) {
     state.errorTitle = state.input.trim()
       ? "Check the player input."
       : "Enter a player to start.";
+    restoreCurrentUrl();
     render();
     return;
   }
@@ -244,9 +340,10 @@ async function lookup(value, { navigation = "push" } = {}) {
     state.tab = "matches";
     rememberPlayer(player, navigation);
     player.profilePromise.then(({ profile, status }) => {
-      if (serial !== request || state.player !== player) return;
       if (profile) player.profile = profile;
       player.profileStatus = status;
+      if (state.player !== player) return;
+      saveRecent(player);
       renderKeepPosition();
     });
   } catch (error) {
@@ -257,12 +354,13 @@ async function lookup(value, { navigation = "push" } = {}) {
         : error.message;
     state.candidates = error.candidates ?? [];
     if (state.candidates.length) state.errorTitle = "Choose a player.";
+    restoreCurrentUrl();
   } finally {
     clearTimeout(timeout);
     if (serial === request) {
       state.loading = false;
       render();
-      if (state.player) revealResults();
+      if (state.player && !state.error) revealResults();
     }
   }
 }
@@ -302,12 +400,67 @@ function showSavedPlayer(player, navigation = "push") {
   revealResults();
 }
 
+async function openDemo(id, navigation = "push") {
+  controller?.abort();
+  const serial = ++request;
+  state.loading = true;
+  state.error = "";
+  state.candidates = [];
+  render();
+  try {
+    const player = await loadSample(id);
+    if (serial === request) showSavedPlayer(player, navigation);
+  } catch {
+    if (serial !== request) return;
+    state.loading = false;
+    state.error = "The saved demo could not load. Go online once to download it, then try again.";
+    restoreCurrentUrl();
+    render();
+  }
+}
+
+function showHome(navigation = "push") {
+  controller?.abort();
+  request++;
+  Object.assign(state, { player: null, input: "", loading: false, error: "", candidates: [] });
+  if (navigation !== "none") {
+    const method = location.search ? "pushState" : "replaceState";
+    history[method]({ key: "home" }, "", pageUrl(null));
+  }
+  render();
+  window.scrollTo(0, 0);
+}
+
 app.addEventListener("click", (event) => {
+  const homeLink = event.target.closest(".brand, .footer-brand");
+  if (homeLink && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) {
+    event.preventDefault();
+    showHome();
+    return;
+  }
   const button = event.target.closest("button");
   if (!button) return;
   if (button.dataset.lookup) lookup(button.dataset.lookup);
   if (button.dataset.demo !== undefined) {
-    showSavedPlayer(samples[Number(button.dataset.demo)]);
+    openDemo(samples[Number(button.dataset.demo)].id);
+  }
+  if (button.dataset.savedDemo) openDemo(button.dataset.savedDemo);
+  if (button.hasAttribute("data-share")) sharePlayer();
+  if (button.hasAttribute("data-favorite") && state.player) {
+    saveRecent(state.player);
+    const player = recentPlayers.find((p) => p.id === state.player.id && p.demo === state.player.demo);
+    player.favorite = !player.favorite;
+    if (!writePlayers(recentPlayers)) {
+      document.querySelector("#share-status").textContent = "Browser storage is unavailable; this favorite will last only for this tab.";
+      return;
+    }
+    renderKeepPosition();
+    document.querySelector("[data-favorite]")?.focus({ preventScroll: true });
+  }
+  if (button.hasAttribute("data-clear-recent")) {
+    recentPlayers = [];
+    writePlayers(recentPlayers);
+    renderKeepPosition();
   }
   if (button.dataset.tab) {
     state.tab = button.dataset.tab;
@@ -355,34 +508,29 @@ app.addEventListener(
   },
   true,
 );
-render();
-const initialPlayer = new URLSearchParams(location.search).get("player");
-const initialDemo = new URLSearchParams(location.search).get("demo");
-if (initialPlayer) lookup(initialPlayer, { navigation: "replace" });
-else if (initialDemo && samples.some((s) => s.id === Number(initialDemo)))
-  showSavedPlayer(
-    samples.find((s) => s.id === Number(initialDemo)),
-    "replace",
-  );
-else history.replaceState({ page: "home" }, "", location.href);
-
-window.addEventListener("popstate", () => {
-  const cached = playerCache.get(history.state?.key);
-  if (cached) return showSavedPlayer(cached, "none");
+function openLocation() {
   const params = new URLSearchParams(location.search);
-  const demo = samples.find((s) => s.id === Number(params.get("demo")));
-  if (demo) return showSavedPlayer(demo, "none");
-  if (params.get("player"))
-    return lookup(params.get("player"), { navigation: "none" });
-  controller?.abort();
-  request++;
-  Object.assign(state, {
-    player: null,
-    input: "",
-    loading: false,
-    error: "",
-    candidates: [],
+  const demo = params.get("demo");
+  const id = demo || params.get("player");
+  const key = `${demo ? "demo" : "live"}:${id}`;
+  const cached = playerCache.get(key);
+  if (cached) return showSavedPlayer(cached, "none");
+  if (id) {
+    state.player = null;
+    if (demo) return openDemo(id, "replace");
+    return lookup(id, { navigation: "replace" });
+  }
+  showHome("none");
+}
+
+history.replaceState({ key: "home" }, "", location.href);
+openLocation();
+window.addEventListener("popstate", openLocation);
+
+if (import.meta.env.PROD && "serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch(() => {
+      // Live lookups and saved demos still work if this browser disallows SWs.
+    });
   });
-  render();
-  window.scrollTo(0, 0);
-});
+}

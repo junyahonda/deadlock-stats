@@ -139,13 +139,27 @@ export async function fetchPlayer(raw, signal) {
     throw new Error(
       "The stats service returned unreadable match records. Try again shortly, or explore a saved demo.",
     );
+  // An empty history is not evidence that a player exists. Only wait for the
+  // optional profile when there are no matches to show in the meantime.
+  let verified = { profile: null, status: "loading" };
+  if (!matches.length) {
+    verified = await profilePromise;
+    if (verified.status === "missing")
+      throw new Error(
+        "No indexed profile or match history was found for this Steam ID. Check the ID, or try another player.",
+      );
+    if (verified.status !== "found")
+      throw new Error(
+        "No indexed match history was returned, and the Steam profile could not be verified. Check the ID and try again, or explore a saved demo.",
+      );
+  }
   return {
     id,
-    profile: {
+    profile: verified.profile ?? {
       account_id: id,
       personaname: `Steam account ${id}`,
     },
-    profileStatus: "loading",
+    profileStatus: verified.status,
     profilePromise,
     matches,
     invalidMatches: history.data.length - matches.length,

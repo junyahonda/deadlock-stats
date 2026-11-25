@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { parsePlayerInput, standardMatches, summarize } from "./stats.js";
+import { parsePlayerInput, standardMatches, summarize, outcome, outcomeDescription } from "./stats.js";
 
 test("numeric Steam64 conversion keeps all 64-bit digits precise", () => {
   for (const input of [
@@ -122,4 +122,17 @@ test("hero stats use the same match window as the summary", () => {
   assert.equal(summary.total, 2);
   assert.equal(summary.heroes.length, 2);
   assert.equal(summary.kda, 6);
+});
+
+test("historical missing scores differ from explicit unscored and penalties; team results never change scored eligibility", () => {
+  const historical = match({ player_match_outcome: 0, player_team: 0, match_result: 0 });
+  assert.equal(outcome(historical), "unavailable");
+  assert.equal(outcomeDescription(historical), "Score unavailable · Team win");
+  assert.equal(outcomeDescription(match({ player_match_outcome: 0, player_team: 1, match_result: 0 })), "Score unavailable · Team loss");
+  assert.equal(outcomeDescription(match({ player_match_outcome: 0 })), "Score unavailable");
+  assert.equal(outcome(match({ player_match_outcome: 3 })), "penalized");
+  assert.equal(outcome(match({ player_match_outcome: 4 })), "party-penalized");
+  assert.equal(outcome(match({ player_match_outcome: 5 })), "unscored");
+  assert.equal(summarize([historical, match(), match({ player_match_outcome: 2 })]).winRate, 50);
+  assert.equal(summarize([historical]).scored, 0);
 });

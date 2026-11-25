@@ -101,14 +101,32 @@ export function parsePlayerInput(raw) {
 }
 
 export function outcome(match) {
-  // Use the scored outcome: penalized, unscored and invalid are not losses.
+  // Invalid/missing historical scores are not confirmed NotScored games.
   if (match.player_match_outcome === 1) return "win";
   if (match.player_match_outcome === 2) return "loss";
-  return "unscored";
+  if (match.player_match_outcome === 3) return "penalized";
+  if (match.player_match_outcome === 4) return "party-penalized";
+  if (match.player_match_outcome === 5) return "unscored";
+  return "unavailable";
+}
+
+export function outcomeDescription(match) {
+  const result = outcome(match);
+  const label = { win: "Victory", loss: "Defeat", penalized: "Penalized", "party-penalized": "Party penalized", unscored: "Not scored", unavailable: "Score unavailable" }[result];
+  // History supplies the winning team separately. It says nothing about
+  // scoring eligibility: never silently use it in a scored win-rate.
+  if (!["win", "loss"].includes(result) && [0, 1].includes(match.player_team) && [0, 1].includes(match.match_result))
+    return `${label} · Team ${match.player_team === match.match_result ? "win" : "loss"}`;
+  return label;
+}
+
+export function outcomeMark(match) {
+  const result = outcome(match);
+  return result === "win" ? "W" : result === "loss" ? "L" : result === "unavailable" ? "?" : result.includes("penalized") ? "P" : "–";
 }
 
 export function summarize(matches) {
-  const scored = matches.filter((m) => outcome(m) !== "unscored");
+  const scored = matches.filter((m) => ["win", "loss"].includes(outcome(m)));
   const wins = scored.filter((m) => outcome(m) === "win").length;
   const kills = matches.reduce((sum, m) => sum + m.player_kills, 0);
   const deaths = matches.reduce((sum, m) => sum + m.player_deaths, 0);

@@ -1,3 +1,11 @@
+@font-face { font-family: "Barlow Condensed"; font-weight: 500; font-style: normal; font-display: optional; src: url("/barlow-condensed-500.woff2") format("woff2"); }
+@font-face { font-family: "Barlow Condensed"; font-weight: 600; font-style: normal; font-display: optional; src: url("/barlow-condensed-600.woff2") format("woff2"); }
+@font-face { font-family: "Barlow Condensed"; font-weight: 700 800; font-style: normal; font-display: optional; src: url("/barlow-condensed-700.woff2") format("woff2"); }
+@font-face { font-family: "DM Sans"; font-weight: 400; font-style: normal; font-display: optional; src: url("/dm-sans-400.woff2") format("woff2"); }
+@font-face { font-family: "DM Sans"; font-weight: 500; font-style: normal; font-display: optional; src: url("/dm-sans-500.woff2") format("woff2"); }
+@font-face { font-family: "DM Sans"; font-weight: 600; font-style: normal; font-display: optional; src: url("/dm-sans-600.woff2") format("woff2"); }
+@font-face { font-family: "DM Sans"; font-weight: 700; font-style: normal; font-display: optional; src: url("/dm-sans-700.woff2") format("woff2"); }
+
 :root {
   font-family: "DM Sans", sans-serif;
   color: #e9e8db;
@@ -1475,5 +1483,382 @@ footer p a {
   *::after {
     animation: none !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* Legible type and physical touch targets apply at every viewport. */
+.profile-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.profile-actions > button, .saved-players button { border: 1px solid #52665b; border-radius: 3px; background: #172c26; color: var(--cream); padding: 9px 12px; font-size: 12px; }
+.profile-actions > button[aria-pressed="true"] { color: #e1bd79; }
+#share-status { flex-basis: 100%; font-size: 12px; }
+#share-status input { width: 100%; font-size: 16px; min-height: 44px; }
+.saved-players { margin-top: 18px; }
+.saved-players .section-label { margin: 0 0 8px; display: block; }
+.saved-players > div { display: flex; flex-wrap: wrap; gap: 8px; }
+.saved-players [data-clear-recent] { background: transparent; }
+@media (max-width: 700px) {
+  .profile-top { flex-wrap: wrap; gap: 12px; }
+  .profile-actions { width: 100%; }
+  .profile-actions > button { flex: 1 1 auto; }
+}
+@media (display-mode: standalone) {
+  body { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
+}
+.brand-sub {
+  font-size: 12px;
+  letter-spacing: 0.5px;
+}
+.header-pill,
+.eyebrow,
+.search-section label,
+.input-hint,
+.quick-profiles > span,
+.section-label,
+.demo-strip span,
+.profile-overline,
+.data-badge,
+.steam-link,
+.refresh span,
+.scope-row p,
+.range-control,
+.stat-card > span,
+.stat-card > small,
+.match-head,
+.match-row small,
+.match-souls,
+.match-time,
+.hero-detail small,
+.hero-rate small,
+.hero-index,
+.panel-note,
+.top-heroes .panel-heading > span,
+.form-box > span,
+.form-box > small,
+.data-footnote,
+footer p,
+.footer-end,
+.player-choices small {
+  font-size: 12px;
+  line-height: 1.65;
+}
+.github-link,
+.quick-profiles button,
+.text-button,
+.primary,
+.notice,
+.feature-grid p,
+.intro,
+.match-identity strong,
+.match-kda strong,
+.hero-detail strong,
+.load-more,
+.empty-state p,
+.loading-state p {
+  font-size: 14px;
+}
+.search-box input {
+  font-size: 16px;
+  line-height: 24px;
+  min-height: 48px;
+}
+button,
+select,
+.github-link,
+.steam-link,
+footer a,
+.brand {
+  min-height: 44px;
+  min-width: 44px;
+}
+.github-link,
+.steam-link,
+footer a {
+  display: inline-flex;
+  align-items: center;
+}
+footer p a {
+  vertical-align: middle;
+}
+.refresh {
+  flex-shrink: 0;
+  height: 46px;
+}
+select {
+  font-size: 14px;
+  height: 46px;
+}
+.notice button {
+  min-height: 44px;
+  padding: 8px 2px;
+}
+.quick-profiles button {
+  align-items: center;
+  white-space: nowrap;
+  gap: 8px;
+}
+.demo-strip .text-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+.demo-strip .text-button span {
+  display: inline;
+  color: var(--gold);
+}
+.avg-kda b,
+.match-kda b {
+  color: #bdcbbf;
+}
+.stat-card.featured b {
+  color: #3e482c;
+}
+.search-box {
+  min-height: 68px;
+}
+.profile-identity > div,
+.match-identity > div {
+  min-width: 0;
+}
+.match-identity strong {
+  overflow-wrap: anywhere;
+}
+.stat-card > small {
+  display: block;
+}
+
+@media (max-width: 1000px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 700px) {
+  .site-header {
+    height: 96px;
+    gap: 14px;
+  }
+  .brand {
+    font-size: 25px;
+    gap: 9px;
+  }
+  .brand-sub {
+    max-width: 145px;
+    line-height: 1.2;
+  }
+  .github-link {
+    font-size: 12px;
+    gap: 2px;
+    white-space: nowrap;
+  }
+  .hero-art {
+    display: none;
+  }
+  .intro {
+    max-width: none;
+    font-size: 14px;
+  }
+  .search-box {
+    min-height: 116px;
+  }
+  .search-section label {
+    letter-spacing: 1.3px;
+  }
+  .input-hint {
+    margin-bottom: 16px;
+  }
+  .quick-profiles {
+    gap: 8px;
+  }
+  .quick-profiles button {
+    font-size: 12px;
+    padding: 9px 8px;
+  }
+  .quick-profiles > span {
+    letter-spacing: 1px;
+  }
+  .section-label {
+    letter-spacing: 0.4px;
+  }
+  .feature-grid p,
+  .demo-strip span {
+    font-size: 14px;
+  }
+  .demo-strip > div:last-child {
+    gap: 4px 14px;
+  }
+  .text-button {
+    font-size: 14px;
+  }
+  .profile-top {
+    align-items: flex-start;
+  }
+  .profile-overline {
+    gap: 5px;
+    letter-spacing: 0.2px;
+  }
+  .data-badge {
+    font-size: 12px;
+    letter-spacing: 0.2px;
+  }
+  .avatar {
+    width: 48px;
+    height: 48px;
+  }
+  #player-title {
+    font-size: 30px;
+  }
+  .steam-link {
+    font-size: 12px;
+    overflow-wrap: anywhere;
+  }
+  .scope-row p {
+    font-size: 12px;
+    max-width: none;
+    flex: 1;
+  }
+  .range-control {
+    font-size: 0;
+    flex-shrink: 0;
+  }
+  .stat-card {
+    min-height: 160px;
+    padding: 16px 12px;
+  }
+  .stat-card > span {
+    letter-spacing: 0.5px;
+  }
+  .stat-card > strong {
+    margin: 10px 0;
+  }
+  .stat-card .avg-kda {
+    font-size: clamp(24px, 6.5vw, 30px);
+    white-space: nowrap;
+  }
+  .avg-kda b {
+    margin: 0 1px;
+    font-size: 17px;
+  }
+  .match-head {
+    font-size: 12px;
+    letter-spacing: 0;
+    padding: 16px 6px 10px;
+  }
+  .match-row {
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) 0.6fr;
+    padding: 10px 6px;
+    gap: 6px;
+  }
+  .match-identity {
+    gap: 6px;
+  }
+  .match-identity strong,
+  .match-kda strong,
+  .match-souls {
+    font-size: 12px;
+  }
+  .match-row small {
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  .match-kda strong {
+    white-space: nowrap;
+  }
+  .match-kda b {
+    margin: 0;
+  }
+  .match-row .portrait {
+    width: 29px;
+    height: 35px;
+  }
+  .hero-detail small,
+  .hero-rate small,
+  .data-footnote {
+    font-size: 12px;
+  }
+  .hero-row {
+    gap: 10px;
+  }
+  footer {
+    display: block;
+  }
+  footer p {
+    font-size: 12px;
+    max-width: none;
+    margin-top: 12px;
+  }
+  .footer-end {
+    display: block;
+    font-size: 12px;
+    margin-top: 16px;
+  }
+}
+@media (max-width: 350px) {
+  .brand-sub {
+    max-width: 120px;
+  }
+  .quick-profiles {
+    gap: 5px;
+  }
+  .quick-profiles button {
+    gap: 5px;
+    padding: 8px 6px;
+  }
+  .stat-card {
+    padding: 12px 9px;
+  }
+  .stat-card .avg-kda {
+    font-size: 23px;
+  }
+  .stat-card > span {
+    letter-spacing: 0;
+  }
+  .match-row .portrait {
+    display: none;
+  }
+  .tabs {
+    gap: 18px;
+  }
+}
+@media (max-height: 500px) and (orientation: landscape) {
+  .site-header {
+    height: 64px;
+  }
+  .brand {
+    font-size: 23px;
+  }
+  .brand-sub,
+  .hero-art,
+  .intro,
+  .eyebrow {
+    display: none;
+  }
+  .search-section {
+    padding: 12px 0 18px;
+  }
+  h1 {
+    font-size: 32px;
+    margin: 0 0 12px;
+  }
+  h1 br {
+    display: none;
+  }
+  h1 em::before {
+    content: " ";
+  }
+  .search-box {
+    flex-wrap: nowrap;
+    min-height: 62px;
+  }
+  .search-box input {
+    flex-basis: auto;
+    width: auto;
+  }
+  .primary {
+    width: auto;
+    margin-top: 0;
+    white-space: nowrap;
+  }
+  .quick-profiles > span {
+    flex-basis: auto;
   }
 }

@@ -3,22 +3,28 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#142824" />
+    <meta name="theme-color" content="#10211e" />
     <meta
       name="description"
       content="Your next match starts here. Look up a Deadlock player’s recent matches, win rate, KDA, and most-played heroes."
     />
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
+    <meta name="color-scheme" content="dark" />
+    <meta property="og:title" content="Deadlock Stats — Know your game." />
+    <meta property="og:description" content="Look up a Deadlock player’s recent matches, win rate, KDA and heroes. Live public stats, plus saved demos." />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Deadlock Stats" />
+    <meta property="og:image" content="https://junyahonda.github.io/deadlock-stats/icon-512.png" />
+    <meta name="twitter:card" content="summary" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="./icon-192.png" />
+    <link rel="preload" href="./barlow-condensed-600.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="./dm-sans-400.woff2" as="font" type="font/woff2" crossorigin />
+    <style>html, body { margin: 0; background: #10211e; color: #e9e8db; font-family: Arial, sans-serif; } #boot { padding: 32px 20px; } #boot h1 { font-size: 32px; } #boot p { line-height: 1.7; }</style>
     <title>Deadlock Stats — Know your game.</title>
   </head>
   <body>
-    <div id="app"></div>
+    <div id="app"><main id="boot"><h1>Deadlock Stats</h1><p>Loading player search…</p><noscript>Enable JavaScript to look up players and explore saved demos.</noscript></main></div>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>
