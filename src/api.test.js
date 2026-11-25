@@ -4,6 +4,28 @@ import { fetchPlayer, resolvePlayer } from "./api.js";
 
 const validMatch = { match_id: 1, game_mode: 1, match_mode: 4, hero_id: 4, start_time: 100, player_kills: 5, player_deaths: 1, player_assists: 9, net_worth: 10000, match_duration_s: 600 };
 
+test("lookups work without AbortSignal.any or timeout and cancel optional profiles", async () => {
+  const original = globalThis.fetch;
+  const originalAny = AbortSignal.any;
+  const originalTimeout = AbortSignal.timeout;
+  AbortSignal.any = undefined;
+  AbortSignal.timeout = undefined;
+  globalThis.fetch = async (url, { signal }) => url.includes("match-history")
+    ? Response.json([validMatch])
+    : new Promise((_, reject) => signal.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")), { once: true }));
+  try {
+    const controller = new AbortController();
+    const player = await fetchPlayer("399289886", controller.signal);
+    assert.equal(player.matches.length, 1);
+    controller.abort();
+    assert.equal((await player.profilePromise).status, "unavailable");
+  } finally {
+    globalThis.fetch = original;
+    AbortSignal.any = originalAny;
+    AbortSignal.timeout = originalTimeout;
+  }
+});
+
 test("a browser network failure gives an actionable offline message", async () => {
   const original = globalThis.fetch;
   globalThis.fetch = async () => {

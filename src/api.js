@@ -99,13 +99,15 @@ export async function fetchPlayer(raw, signal) {
   const id = await resolvePlayer(raw, signal);
   let verified = { profile: null, status: "loading" };
   // Optional name/avatar data must never hold back the match dashboard.
-  const profileSignal = AbortSignal.any([
-    ...(signal ? [signal] : []),
-    AbortSignal.timeout(4000),
-  ]);
+  // AbortSignal.any is unavailable on Safari 17.3 and earlier.
+  const profileController = new AbortController();
+  const cancelProfile = () => profileController.abort();
+  const profileTimeout = setTimeout(cancelProfile, 4000);
+  if (signal?.aborted) cancelProfile();
+  else signal?.addEventListener("abort", cancelProfile, { once: true });
   const profilePromise = get(
     `/v1/players/steam?account_ids=${id}`,
-    profileSignal,
+    profileController.signal,
   )
     .then(({ data }) => {
       if (!Array.isArray(data)) return { profile: null, status: "unavailable" };
@@ -121,6 +123,10 @@ export async function fetchPlayer(raw, signal) {
       profile: null,
       status: error.code === "NOT_FOUND" ? "missing" : "unavailable",
     }))
+    .finally(() => {
+      clearTimeout(profileTimeout);
+      signal?.removeEventListener("abort", cancelProfile);
+    })
     .then((result) => {
       verified = result;
       return result;
