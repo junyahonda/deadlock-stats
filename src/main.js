@@ -16,6 +16,7 @@ import wraithCard from "./art/hero-7.webp";
 import { sampleProfiles as samples, loadSample } from "./samples.js";
 import { KEY as PLAYERS_KEY, readPlayers, writePlayers, upsertPlayer } from "./storage.js";
 import { Intelligence, personalBest } from "./insights-ui.js";
+import { playerPath, playerTab, tierPath, readRoute, writeNavigation } from "./navigation.js";
 
 const app = document.querySelector("#app");
 const arrow = '<span aria-hidden="true">↗</span>';
@@ -187,7 +188,7 @@ function updateProfileActions() {
 }
 
 function pageUrl(player = state.player) {
-  return `${location.pathname}${player ? `?${player.demo ? "demo" : "player"}=${player.id}` : ""}`;
+  return playerPath(location.pathname, player, state.tab);
 }
 
 function restoreCurrentUrl() {
@@ -327,14 +328,7 @@ function rememberPlayer(player, navigation = "push") {
   if (playerCache.size > 12)
     playerCache.delete(playerCache.keys().next().value);
   saveRecent(player);
-  if (navigation !== "none") {
-    const url = `${location.pathname}?${player.demo ? "demo" : "player"}=${player.id}`;
-    const method =
-      navigation === "replace" || location.pathname + location.search === url
-        ? "replaceState"
-        : "pushState";
-    history[method]({ key }, "", url);
-  }
+  writeNavigation(pageUrl(player), navigation, key);
 }
 
 function renderKeepPosition() {
@@ -352,7 +346,7 @@ function renderKeepPosition() {
   window.scrollTo(0, scroll);
 }
 
-async function lookup(value, { navigation = "push", preserveRoute = false, profileHint } = {}) {
+async function lookup(value, { navigation = "push", preserveRoute = false, profileHint, tab = "matches" } = {}) {
   controller?.abort();
   controller = new AbortController();
   const activeController = controller;
@@ -384,7 +378,7 @@ async function lookup(value, { navigation = "push", preserveRoute = false, profi
       player.profile = profileHint;
     state.player = player;
     state.show = 8;
-    state.tab = "matches";
+    state.tab = playerTab(tab);
     rememberPlayer(player, navigation);
     player.profilePromise.then(({ profile, status }) => {
       if (profile) {
@@ -434,7 +428,7 @@ app.addEventListener("input", (event) => {
   }
 });
 
-function showSavedPlayer(player, navigation = "push") {
+function showSavedPlayer(player, navigation = "push", { tab = "matches" } = {}) {
   controller?.abort();
   request++;
   state.page = "player";
@@ -445,13 +439,13 @@ function showSavedPlayer(player, navigation = "push") {
   state.error = "";
   state.candidates = [];
   state.show = 8;
-  state.tab = "matches";
+  state.tab = playerTab(tab);
   rememberPlayer(player, navigation);
   render();
   revealResults();
 }
 
-async function openDemo(id, navigation = "push", { preserveRoute = false } = {}) {
+async function openDemo(id, navigation = "push", { preserveRoute = false, tab = "matches" } = {}) {
   controller?.abort();
   const serial = ++request;
   state.page = "player";
@@ -461,7 +455,7 @@ async function openDemo(id, navigation = "push", { preserveRoute = false } = {})
   render();
   try {
     const player = await loadSample(id);
-    if (serial === request) showSavedPlayer(player, navigation);
+    if (serial === request) showSavedPlayer(player, navigation, { tab });
   } catch {
     if (serial !== request) return;
     state.loading = false;
@@ -475,24 +469,29 @@ function showHome(navigation = "push") {
   controller?.abort();
   request++;
   Object.assign(state, { player: null, input: "", loading: false, error: "", candidates: [], page: "player", hero: null });
-  if (navigation !== "none") {
-    const method = location.search ? "pushState" : "replaceState";
-    history[method]({ key: "home" }, "", pageUrl(null));
-  }
+  writeNavigation(pageUrl(null), navigation, "home");
   render();
   window.scrollTo(0, 0);
 }
 
-function showTiers(heroId = null, navigation = "push") {
+function showTiers(heroId = null, navigation = "push", build = null) {
   controller?.abort();
   request++;
   Object.assign(state, { page: "tiers", hero: heroId, loading: false, error: "", candidates: [] });
-  const url = `${location.pathname}?view=heroes${heroId ? `&hero=${heroId}` : ""}`;
-  if (navigation !== "none" && location.pathname + location.search !== url) history.pushState({ key: `tiers:${heroId ?? "all"}` }, "", url);
+  intelligence.activeBuild = build;
+  writeNavigation(tierPath(location.pathname, heroId, build), navigation, `tiers:${heroId ?? "all"}`);
   render();
-  const title = document.querySelector(heroId ? "#hero-leader-title" : "#tier-title");
+  const title = (build && document.getElementById(`build-${heroId}-${build.account}-${build.id}`)) || document.querySelector(heroId ? "#hero-leader-title" : "#tier-title");
   title?.focus({ preventScroll: true });
   title?.scrollIntoView({ block: "start" });
+}
+
+function showPlayerTab(tab) {
+  if (!state.player || state.page !== "player" || state.tab === tab) return;
+  state.tab = playerTab(tab);
+  writeNavigation(pageUrl(), "push", `${state.player.demo ? "demo" : "live"}:${state.player.id}`);
+  renderKeepPosition();
+  document.querySelector(`#${state.tab}-tab`)?.focus({ preventScroll: true });
 }
 
 app.addEventListener("click", (event) => {
@@ -509,11 +508,15 @@ app.addEventListener("click", (event) => {
     if (state.player) showSavedPlayer(state.player); else showHome();
     return;
   }
+  if (button.dataset.showBuild && state.page === "tiers" && state.hero) {
+    intelligence.activeBuild = { id: Number(button.dataset.showBuild), account: Number(button.dataset.buildAccount) };
+    writeNavigation(tierPath(location.pathname, state.hero, intelligence.activeBuild), "push", `tiers:${state.hero}`);
+  }
   if (intelligence.click(button, state.player)) { renderKeepPosition(); return; }
   if (button.dataset.lookup) {
     const id = Number(button.dataset.lookup);
     const profileHint = state.candidates.find((p) => p.account_id === id) ?? (state.player?.id === id ? state.player.profile : undefined);
-    lookup(button.dataset.lookup, { profileHint });
+    lookup(button.dataset.lookup, { profileHint, tab: button.id === "refresh-player" ? state.tab : "matches" });
   }
   if (button.dataset.demo !== undefined) {
     openDemo(samples[Number(button.dataset.demo)].id);
@@ -532,9 +535,7 @@ app.addEventListener("click", (event) => {
     renderKeepPosition();
   }
   if (button.dataset.tab) {
-    state.tab = button.dataset.tab;
-    render();
-    document.querySelector(`#${state.tab}-tab`)?.focus({ preventScroll: true });
+    showPlayerTab(button.dataset.tab);
   }
   if (button.hasAttribute("data-more")) {
     const scroll = window.scrollY;
@@ -552,9 +553,7 @@ app.addEventListener("keydown", (event) => {
   event.preventDefault();
   const tabs = ["matches", "heroes", "improve"];
   const current = tabs.indexOf(state.tab);
-  state.tab = event.key === "Home" ? tabs[0] : event.key === "End" ? tabs.at(-1) : tabs[(current + (event.key === "ArrowRight" ? 1 : 2)) % tabs.length];
-  render();
-  document.querySelector(`#${state.tab}-tab`)?.focus({ preventScroll: true });
+  showPlayerTab(event.key === "Home" ? tabs[0] : event.key === "End" ? tabs.at(-1) : tabs[(current + (event.key === "ArrowRight" ? 1 : 2)) % tabs.length]);
 });
 app.addEventListener("change", (event) => {
   if (event.target.id === "comparison-hero" && state.player) {
@@ -578,20 +577,24 @@ app.addEventListener(
   true,
 );
 function openLocation() {
-  const params = new URLSearchParams(location.search);
-  if (params.get("view") === "heroes") {
-    const hero = Number(params.get("hero"));
-    return showTiers(Number.isSafeInteger(hero) && hero > 0 && hero < 10000 ? hero : null, "none");
-  }
-  const demo = params.get("demo");
-  const id = demo || params.get("player");
+  const route = readRoute(location.search);
+  if (route.page === "tiers") return showTiers(route.hero, "none", route.build);
+  const { demo, id, tab } = route;
   const key = `${demo ? "demo" : "live"}:${id}`;
   const cached = playerCache.get(key);
-  if (cached) return showSavedPlayer(cached, "none");
+  if (cached && cached === state.player && state.page === "player") {
+    controller?.abort();
+    request++;
+    Object.assign(state, { tab, loading: false, error: "", candidates: [] });
+    renderKeepPosition();
+    document.querySelector(`#${tab}-tab`)?.focus({ preventScroll: true });
+    return;
+  }
+  if (cached) return showSavedPlayer(cached, "none", { tab });
   if (id) {
     state.player = null;
-    if (demo) return openDemo(id, "replace", { preserveRoute: true });
-    return lookup(id, { navigation: "replace", preserveRoute: true });
+    if (demo) return openDemo(id, "replace", { preserveRoute: true, tab });
+    return lookup(id, { navigation: "replace", preserveRoute: true, tab });
   }
   showHome("none");
 }

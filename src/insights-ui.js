@@ -1,4 +1,4 @@
-import heroes from "./heroes.json";
+import heroes from "./heroes.json" with { type: "json" };
 import { bestHeroes } from "./insights.js";
 import { analysisWindow, fetchTiers, fetchHeroLeaders, fetchComparisonHeroes, fetchComparison, fetchBuild } from "./insights-api.js";
 
@@ -26,6 +26,7 @@ export class Intelligence {
     this.playerHeroes = new Map();
     this.comparisons = new Map();
     this.builds = new Map();
+    this.activeBuild = null;
     this.selectedHeroes = new Map();
   }
 
@@ -63,13 +64,27 @@ export class Intelligence {
 
   heroPage(heroId) {
     const record = this.load(this.leaders, heroId, () => fetchHeroLeaders(heroId, this.window));
-    return `<section class="hero-leaderboard" aria-labelledby="hero-leader-title"><div class="insight-heading"><div><span class="section-label">HERO DOSSIER</span><h2 id="hero-leader-title" tabindex="-1">${esc(name(heroId))} · Top 5 players</h2></div><button class="insight-button" id="refresh-leaders" data-refresh-leaders="${heroId}">Refresh players</button></div><p>Highest observed hero win rates · at least 20 matches<br><small>Last 30 complete UTC days · ${esc(period(this.window))}</small></p><p class="insight-footnote">A recent performance leaderboard, not a claim that these are the world’s best players. Small samples, matchmaking and API coverage affect the order.</p>${this.status(record, `data-refresh-leaders="${heroId}"`)}${record.data ? `${record.data.players.length ? `<ol class="leader-list">${record.data.players.map((player, index) => this.leaderCard(player, index, heroId)).join("")}</ol>` : '<p class="insight-empty">No players meet this hero’s minimum sample in the period.</p>'}${fetched(record.data)}` : ""}</section>`;
+    return `<section class="hero-leaderboard" aria-labelledby="hero-leader-title"><div class="insight-heading"><div><span class="section-label">HERO DOSSIER</span><h2 id="hero-leader-title" tabindex="-1">${esc(name(heroId))} · Top 5 players</h2></div><button class="insight-button" id="refresh-leaders" data-refresh-leaders="${heroId}">Refresh players</button></div><p>Highest observed hero win rates · at least 20 matches<br><small>Last 30 complete UTC days · ${esc(period(this.window))}</small></p><p class="insight-footnote">A recent performance leaderboard, not a claim that these are the world’s best players. Small samples, matchmaking and API coverage affect the order.</p>${this.status(record, `data-refresh-leaders="${heroId}"`)}${record.data ? `${record.data.players.length ? `<ol class="leader-list">${record.data.players.map((player, index) => this.leaderCard(player, index, heroId)).join("")}</ol>` : '<p class="insight-empty">No players meet this hero’s minimum sample in the period.</p>'}${fetched(record.data)}` : ""}${this.linkedBuild(heroId, record)}</section>`;
+  }
+
+  linkedBuild(heroId, leaders) {
+    const selected = this.activeBuild;
+    if (!selected || leaders.data?.players.some((player) => player.account_id === selected.account && player.build?.hero_build_id === selected.id)) return "";
+    // A shared/reloaded build is still useful after the top five or their
+    // observed builds change. Do not present the link as current usage.
+    const record = this.load(this.builds, `${heroId}:${selected.id}`, () => fetchBuild(heroId, selected.id));
+    const retry = `data-show-build="${selected.id}" data-build-hero="${heroId}" data-build-account="${selected.account}"`;
+    return `<section class="leader-card" aria-label="Linked build"><h3>Build from your link</h3><p>Build #${selected.id} · account ${selected.account}</p><p class="insight-footnote">The leaderboard and observed selections may have changed since this link was created. This is not a claim of current player usage.</p><button id="build-${heroId}-${selected.account}-${selected.id}" class="insight-button" ${retry}>Reload build details</button>${this.status(record, retry)}${record.data ? this.buildDetails(record.data) : ""}</section>`;
   }
 
   leaderCard(player, index, heroId) {
     const build = player.build;
-    const buildRecord = build ? this.builds.get(`${heroId}:${build.hero_build_id}`) : null;
-    return `<li class="leader-card"><div class="leader-summary"><span class="best-rank">0${index + 1}</span><div><button class="player-jump" data-lookup="${player.account_id}">${esc(player.name || `Steam account ${player.account_id}`)} <span aria-hidden="true">↗</span></button><small>Account ${player.account_id} · ${count(player.matches)} hero matches</small></div><strong>${pct(player.value)}<small>win rate</small></strong></div><div class="observed-build">${build ? `<span class="section-label">MOST-USED OBSERVED BUILD</span><p>Build #${build.hero_build_id} · selected in ${count(build.matches)} processed ${build.matches === 1 ? "demo" : "demos"}</p><button id="build-${heroId}-${player.account_id}-${build.hero_build_id}" class="insight-button" data-show-build="${build.hero_build_id}" data-build-hero="${heroId}">${buildRecord ? "Reload build details" : "Show build & items"}</button>${buildRecord ? `${this.status(buildRecord, `data-show-build="${build.hero_build_id}" data-build-hero="${heroId}"`)}${buildRecord.data ? this.buildDetails(buildRecord.data) : ""}` : ""}<p class="insight-footnote">Observed at match start; demo coverage is partial. Selection does not prove every item was purchased.</p>` : `<p class="insight-empty">${player.buildError ? esc(player.buildError) : "No observed build is available for this player and hero. We will not substitute a popular build."}</p>`}</div></li>`;
+    // Cached build data is not expansion state: Back must hide it without
+    // discarding the cache, and Forward must reopen only the selected card.
+    const expanded = build && this.activeBuild?.account === player.account_id && this.activeBuild?.id === build.hero_build_id;
+    const buildRecord = expanded ? this.load(this.builds, `${heroId}:${build.hero_build_id}`, () => fetchBuild(heroId, build.hero_build_id)) : null;
+    const buildButton = build ? `data-show-build="${build.hero_build_id}" data-build-hero="${heroId}" data-build-account="${player.account_id}"` : "";
+    return `<li class="leader-card"><div class="leader-summary"><span class="best-rank">0${index + 1}</span><div><button class="player-jump" data-lookup="${player.account_id}">${esc(player.name || `Steam account ${player.account_id}`)} <span aria-hidden="true">↗</span></button><small>Account ${player.account_id} · ${count(player.matches)} hero matches</small></div><strong>${pct(player.value)}<small>win rate</small></strong></div><div class="observed-build">${build ? `<span class="section-label">MOST-USED OBSERVED BUILD</span><p>Build #${build.hero_build_id} · selected in ${count(build.matches)} processed ${build.matches === 1 ? "demo" : "demos"}</p><button id="build-${heroId}-${player.account_id}-${build.hero_build_id}" class="insight-button" ${buildButton} aria-expanded="${Boolean(expanded)}">${expanded ? "Reload build details" : "Show build & items"}</button>${buildRecord ? `${this.status(buildRecord, buildButton)}${buildRecord.data ? this.buildDetails(buildRecord.data) : ""}` : ""}<p class="insight-footnote">Observed at match start; demo coverage is partial. Selection does not prove every item was purchased.</p>` : `<p class="insight-empty">${player.buildError ? esc(player.buildError) : "No observed build is available for this player and hero. We will not substitute a popular build."}</p>`}</div></li>`;
   }
 
   buildDetails({ build, itemNames }) {
