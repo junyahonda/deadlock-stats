@@ -720,8 +720,12 @@ select {
   background: #292e25;
   border-left-color: #bb8173;
 }
-.match-row.unscored {
+.match-row.unscored,
+.match-row.unavailable,
+.match-row.penalized,
+.match-row.party-penalized {
   border-left-color: #8c9382;
+  background: #22312b;
 }
 .match-identity {
   display: flex;
@@ -738,7 +742,10 @@ select {
 .loss .result-dot {
   color: var(--red);
 }
-.unscored .result-dot {
+.unscored .result-dot,
+.unavailable .result-dot,
+.penalized .result-dot,
+.party-penalized .result-dot {
   color: var(--muted);
 }
 .match-identity strong {
@@ -1351,6 +1358,10 @@ footer p a {
   }
   .match-identity small span {
     display: block;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .match-kda small {
     white-space: normal;
     overflow-wrap: anywhere;
   }
