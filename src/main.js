@@ -14,7 +14,7 @@ import geistCard from "./art/hero-4.webp";
 import infernusCard from "./art/hero-1.webp";
 import wraithCard from "./art/hero-7.webp";
 import { sampleProfiles as samples, loadSample } from "./samples.js";
-import { KEY as PLAYERS_KEY, readPlayers, writePlayers } from "./storage.js";
+import { KEY as PLAYERS_KEY, readPlayers, writePlayers, upsertPlayer } from "./storage.js";
 import { Intelligence, personalBest } from "./insights-ui.js";
 
 const app = document.querySelector("#app");
@@ -155,14 +155,9 @@ function savedPlayers() {
   return `<div class="saved-players"><span class="section-label">RECENT & FAVORITE PLAYERS · SAVED ON THIS DEVICE</span><div>${recentPlayers.map((p) => `<button type="button" ${p.demo ? `data-saved-demo="${p.id}"` : `data-lookup="${p.id}"`}>${p.favorite ? '<span aria-hidden="true">★ </span>' : ""}${esc(p.name)}${p.demo ? " · demo" : ""}</button>`).join("")}<button type="button" data-clear-recent>Clear saved players</button></div></div>`;
 }
 
-function saveRecent(player) {
-  recentPlayers = readPlayers(recentPlayers);
-  const previous = recentPlayers.find((p) => p.id === player.id && p.demo === player.demo);
-  const entry = { id: player.id, name: player.profile.personaname, demo: player.demo, favorite: previous?.favorite ?? false };
-  const others = recentPlayers.filter((p) => p.id !== player.id || p.demo !== player.demo);
-  const ordered = [entry, ...others];
-  recentPlayers = [...ordered.filter((p) => p.favorite), ...ordered.filter((p) => !p.favorite)].slice(0, 16);
-  writePlayers(recentPlayers);
+function saveRecent(player, toggleFavorite = false) {
+  recentPlayers = upsertPlayer(readPlayers(recentPlayers), player, toggleFavorite);
+  return writePlayers(recentPlayers);
 }
 
 function updateSavedName(player) {
@@ -526,14 +521,9 @@ app.addEventListener("click", (event) => {
   if (button.dataset.savedDemo) openDemo(button.dataset.savedDemo);
   if (button.hasAttribute("data-share")) sharePlayer();
   if (button.hasAttribute("data-favorite") && state.player) {
-    saveRecent(state.player);
-    const player = recentPlayers.find((p) => p.id === state.player.id && p.demo === state.player.demo);
-    player.favorite = !player.favorite;
-    if (!writePlayers(recentPlayers)) {
-      document.querySelector("#share-status").textContent = "Browser storage is unavailable; this favorite will last only for this tab.";
-      return;
-    }
+    const stored = saveRecent(state.player, true);
     renderKeepPosition();
+    if (!stored) document.querySelector("#share-status").textContent = "Browser storage is unavailable; this favorite will last only for this tab.";
     document.querySelector("[data-favorite]")?.focus({ preventScroll: true });
   }
   if (button.hasAttribute("data-clear-recent")) {
