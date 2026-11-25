@@ -1038,7 +1038,7 @@ footer p a {
     gap: 3px;
   }
   .quick-profiles button {
-    min-height: 36px;
+    min-height: 44px;
   }
 }
 @media (max-width: 700px) {
@@ -1161,7 +1161,7 @@ footer p a {
     font-size: 9px;
     gap: 9px;
     padding: 8px;
-    min-height: 39px;
+    min-height: 44px;
   }
   .section-label {
     font-size: 8px;
@@ -1210,7 +1210,7 @@ footer p a {
   }
   .text-button {
     font-size: 10px;
-    min-height: 39px;
+    min-height: 44px;
   }
   .results {
     padding-top: 24px;
@@ -1262,7 +1262,7 @@ footer p a {
   }
   select {
     font-size: 10px;
-    min-height: 38px;
+    min-height: 44px;
     padding: 8px 20px 8px 9px;
   }
   .stat-grid {
@@ -1350,7 +1350,9 @@ footer p a {
     font-size: 10px;
   }
   .match-identity small span {
-    display: none;
+    display: block;
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
   .load-more {
     min-height: 44px;
