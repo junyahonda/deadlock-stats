@@ -14,7 +14,7 @@ import geistCard from "./art/hero-4.webp";
 import infernusCard from "./art/hero-1.webp";
 import wraithCard from "./art/hero-7.webp";
 import { sampleProfiles as samples, loadSample } from "./samples.js";
-import { readPlayers, writePlayers } from "./storage.js";
+import { KEY as PLAYERS_KEY, readPlayers, writePlayers } from "./storage.js";
 import { Intelligence, personalBest } from "./insights-ui.js";
 
 const app = document.querySelector("#app");
@@ -156,6 +156,7 @@ function savedPlayers() {
 }
 
 function saveRecent(player) {
+  recentPlayers = readPlayers(recentPlayers);
   const previous = recentPlayers.find((p) => p.id === player.id && p.demo === player.demo);
   const entry = { id: player.id, name: player.profile.personaname, demo: player.demo, favorite: previous?.favorite ?? false };
   const others = recentPlayers.filter((p) => p.id !== player.id || p.demo !== player.demo);
@@ -165,11 +166,18 @@ function saveRecent(player) {
 }
 
 function updateSavedName(player) {
+  recentPlayers = readPlayers(recentPlayers);
   const saved = recentPlayers.find((p) => p.id === player.id && p.demo === player.demo);
   if (!saved) return;
   saved.name = player.profile.personaname;
   writePlayers(recentPlayers);
 }
+
+window.addEventListener("storage", (event) => {
+  if (event.key !== PLAYERS_KEY && event.key !== null) return;
+  recentPlayers = readPlayers(recentPlayers);
+  renderKeepPosition();
+});
 
 function updateProfileActions() {
   const refresh = document.querySelector(".profile-top .refresh");
