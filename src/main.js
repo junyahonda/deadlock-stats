@@ -159,7 +159,7 @@ function updateProfileActions() {
   refresh.replaceWith(actions);
   actions.append(refresh);
   const favorite = recentPlayers.some((p) => p.id === state.player.id && p.demo === state.player.demo && p.favorite);
-  actions.insertAdjacentHTML("beforeend", `<button type="button" data-share>Share / copy link</button><button type="button" data-favorite aria-pressed="${favorite}">${favorite ? "★ Favorited" : "☆ Favorite"}</button><span id="share-status" role="status"></span>`);
+  actions.insertAdjacentHTML("beforeend", `<button type="button" id="share-player" data-share>Share / copy link</button><button type="button" id="favorite-player" data-favorite aria-pressed="${favorite}">${favorite ? "★ Favorited" : "☆ Favorite"}</button><span id="share-status" role="status"></span>`);
 }
 
 function pageUrl(player = state.player) {
@@ -322,7 +322,7 @@ function renderKeepPosition() {
       : null;
   const scroll = window.scrollY;
   render();
-  const next = activeId && document.getElementById(activeId);
+  const next = activeId ? document.getElementById(activeId) : null;
   next?.focus({ preventScroll: true });
   if (selection) next?.setSelectionRange(...selection);
   window.scrollTo(0, scroll);
