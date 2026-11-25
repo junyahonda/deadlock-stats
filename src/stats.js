@@ -91,7 +91,7 @@ export function parsePlayerInput(raw) {
     account = number >= STEAM_BASE ? number - STEAM_BASE : number;
   } else if (/^[\w-]{2,64}$/.test(value)) {
     return { vanity: value, allowSearch: true };
-  } else if (/^[^<>:/\\\[\]]{2,64}$/.test(value) && !/^STEAM_/i.test(value)) {
+  } else if (/^[^<>\[\]]{2,64}$/.test(value) && !/^STEAM_/i.test(value)) {
     return { vanity: value, allowSearch: true };
   } else
     throw new Error(

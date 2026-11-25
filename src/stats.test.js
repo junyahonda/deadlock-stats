@@ -70,6 +70,9 @@ test("accepts mobile and profile-tab links, share links, pasted numeric formatti
     vanity: "C9 Average",
     allowSearch: true,
   });
+  for (const name of ["ttv/3apomni", "name:with:colons", "player\\name"]) {
+    assert.deepEqual(parsePlayerInput(name), { vanity: name, allowSearch: true });
+  }
 });
 
 const match = (overrides = {}) => ({
