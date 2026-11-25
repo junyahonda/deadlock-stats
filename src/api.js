@@ -3,7 +3,15 @@ import { parsePlayerInput } from "./stats.js";
 const API = "https://api.deadlock-api.com";
 
 async function get(path, signal) {
-  const response = await fetch(`${API}${path}`, { signal });
+  let response;
+  try {
+    response = await fetch(`${API}${path}`, { signal });
+  } catch (error) {
+    if (error.name === "AbortError") throw error;
+    throw new Error(
+      "Couldn’t reach the stats service. Check your connection and try again, or explore a saved demo.",
+    );
+  }
   // The API can return stored history with 429; accept only an actual array.
   if (response.status === 429 && path.includes("/match-history")) {
     const data = await response.json();
