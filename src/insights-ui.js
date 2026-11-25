@@ -1,4 +1,4 @@
-import heroes from "./heroes.json";
+import heroes from "./heroes.json" with { type: "json" };
 import { bestHeroes } from "./insights.js";
 import { analysisWindow, fetchTiers, fetchHeroLeaders, fetchComparisonHeroes, fetchComparison, fetchBuild } from "./insights-api.js";
 
@@ -64,7 +64,17 @@ export class Intelligence {
 
   heroPage(heroId) {
     const record = this.load(this.leaders, heroId, () => fetchHeroLeaders(heroId, this.window));
-    return `<section class="hero-leaderboard" aria-labelledby="hero-leader-title"><div class="insight-heading"><div><span class="section-label">HERO DOSSIER</span><h2 id="hero-leader-title" tabindex="-1">${esc(name(heroId))} · Top 5 players</h2></div><button class="insight-button" id="refresh-leaders" data-refresh-leaders="${heroId}">Refresh players</button></div><p>Highest observed hero win rates · at least 20 matches<br><small>Last 30 complete UTC days · ${esc(period(this.window))}</small></p><p class="insight-footnote">A recent performance leaderboard, not a claim that these are the world’s best players. Small samples, matchmaking and API coverage affect the order.</p>${this.status(record, `data-refresh-leaders="${heroId}"`)}${record.data ? `${record.data.players.length ? `<ol class="leader-list">${record.data.players.map((player, index) => this.leaderCard(player, index, heroId)).join("")}</ol>` : '<p class="insight-empty">No players meet this hero’s minimum sample in the period.</p>'}${fetched(record.data)}` : ""}</section>`;
+    return `<section class="hero-leaderboard" aria-labelledby="hero-leader-title"><div class="insight-heading"><div><span class="section-label">HERO DOSSIER</span><h2 id="hero-leader-title" tabindex="-1">${esc(name(heroId))} · Top 5 players</h2></div><button class="insight-button" id="refresh-leaders" data-refresh-leaders="${heroId}">Refresh players</button></div><p>Highest observed hero win rates · at least 20 matches<br><small>Last 30 complete UTC days · ${esc(period(this.window))}</small></p><p class="insight-footnote">A recent performance leaderboard, not a claim that these are the world’s best players. Small samples, matchmaking and API coverage affect the order.</p>${this.status(record, `data-refresh-leaders="${heroId}"`)}${record.data ? `${record.data.players.length ? `<ol class="leader-list">${record.data.players.map((player, index) => this.leaderCard(player, index, heroId)).join("")}</ol>` : '<p class="insight-empty">No players meet this hero’s minimum sample in the period.</p>'}${fetched(record.data)}` : ""}${this.linkedBuild(heroId, record)}</section>`;
+  }
+
+  linkedBuild(heroId, leaders) {
+    const selected = this.activeBuild;
+    if (!selected || leaders.data?.players.some((player) => player.account_id === selected.account && player.build?.hero_build_id === selected.id)) return "";
+    // A shared/reloaded build is still useful after the top five or their
+    // observed builds change. Do not present the link as current usage.
+    const record = this.load(this.builds, `${heroId}:${selected.id}`, () => fetchBuild(heroId, selected.id));
+    const retry = `data-show-build="${selected.id}" data-build-hero="${heroId}" data-build-account="${selected.account}"`;
+    return `<section class="leader-card" aria-label="Linked build"><h3>Build from your link</h3><p>Build #${selected.id} · account ${selected.account}</p><p class="insight-footnote">The leaderboard and observed selections may have changed since this link was created. This is not a claim of current player usage.</p><button id="build-${heroId}-${selected.account}-${selected.id}" class="insight-button" ${retry}>Reload build details</button>${this.status(record, retry)}${record.data ? this.buildDetails(record.data) : ""}</section>`;
   }
 
   leaderCard(player, index, heroId) {
