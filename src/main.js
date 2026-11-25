@@ -25,6 +25,7 @@ const state = {
 };
 let request = 0;
 let controller;
+const playerCache = new Map();
 const esc = (s) =>
   String(s ?? "").replace(
     /[&<>"']/g,
@@ -127,6 +128,42 @@ function updateSearchGuidance() {
     "Steam ID, player name, or profile link";
   const errorTitle = document.querySelector("#lookup-error strong");
   if (errorTitle) errorTitle.textContent = state.errorTitle;
+  const fallback = document.querySelector("#lookup-error [data-demo]");
+  if (fallback && state.player) {
+    const index = samples.findIndex((s) => s.id === state.player.id);
+    if (index >= 0) fallback.dataset.demo = String(index);
+  }
+  const region = document.querySelector("#result-region");
+  if (state.player && state.loading) {
+    region.innerHTML = `<div class="notice" role="status">Updating stats. Your previous results remain below until the new lookup completes.</div>${results()}`;
+  }
+  if (state.player && state.error && !state.candidates.length) {
+    region.insertAdjacentHTML(
+      "afterbegin",
+      '<p class="notice">Showing the previous results. The latest lookup did not replace this dashboard.</p>',
+    );
+  }
+  if (state.player && !state.player.demo) {
+    const player = state.player;
+    const link = region.querySelector(".steam-link");
+    if (link && player.profileStatus !== "found") {
+      link.removeAttribute("href");
+      link.textContent = `Account ${player.id} · ${player.profileStatus === "loading" ? "name loading…" : "Steam profile unverified"}`;
+    }
+    if (player.profileStatus === "missing" && !player.matches.length) {
+      const badge = region.querySelector(".data-badge");
+      if (badge) badge.textContent = "NO PROFILE DATA";
+      const heading = region.querySelector(".empty-state h3");
+      if (heading) heading.textContent = "No indexed player or matches found.";
+    }
+    if (player.invalidMatches)
+      region.insertAdjacentHTML(
+        "beforeend",
+        '<p class="notice">Some unreadable match records were excluded. Stats cover the valid records only.</p>',
+      );
+  }
+  const heading = region.querySelector("#player-title");
+  heading?.setAttribute("tabindex", "-1");
   if (state.candidates.length) {
     document.querySelector("#result-region").innerHTML = playerChoices();
     document.querySelector("#player-input").removeAttribute("aria-invalid");
@@ -146,7 +183,37 @@ function revealResults() {
   results.scrollIntoView({ behavior: "instant", block: "start" });
 }
 
-async function lookup(value) {
+function rememberPlayer(player, navigation = "push") {
+  const key = `${player.demo ? "demo" : "live"}:${player.id}`;
+  playerCache.set(key, player);
+  if (playerCache.size > 12)
+    playerCache.delete(playerCache.keys().next().value);
+  if (navigation !== "none") {
+    const url = `${location.pathname}?${player.demo ? "demo" : "player"}=${player.id}`;
+    const method =
+      navigation === "replace" || location.pathname + location.search === url
+        ? "replaceState"
+        : "pushState";
+    history[method]({ key }, "", url);
+  }
+}
+
+function renderKeepPosition() {
+  const active = document.activeElement;
+  const activeId = active?.id;
+  const selection =
+    active?.id === "player-input"
+      ? [active.selectionStart, active.selectionEnd]
+      : null;
+  const scroll = window.scrollY;
+  render();
+  const next = activeId && document.getElementById(activeId);
+  next?.focus({ preventScroll: true });
+  if (selection) next?.setSelectionRange(...selection);
+  window.scrollTo(0, scroll);
+}
+
+async function lookup(value, { navigation = "push" } = {}) {
   controller?.abort();
   controller = new AbortController();
   const activeController = controller;
@@ -154,7 +221,6 @@ async function lookup(value) {
   state.input = String(value);
   state.loading = true;
   state.error = "";
-  state.player = null;
   state.candidates = [];
   state.errorTitle = "Couldn’t load this player.";
   try {
@@ -176,7 +242,13 @@ async function lookup(value) {
     state.player = player;
     state.show = 8;
     state.tab = "matches";
-    history.replaceState(null, "", `${location.pathname}?player=${player.id}`);
+    rememberPlayer(player, navigation);
+    player.profilePromise.then(({ profile, status }) => {
+      if (serial !== request || state.player !== player) return;
+      if (profile) player.profile = profile;
+      player.profileStatus = status;
+      renderKeepPosition();
+    });
   } catch (error) {
     if (serial !== request) return;
     state.error =
@@ -201,25 +273,41 @@ app.addEventListener("submit", (event) => {
   lookup(new FormData(event.target).get("player"));
 });
 app.addEventListener("input", (event) => {
-  if (event.target.id === "player-input") state.input = event.target.value;
+  if (event.target.id === "player-input") {
+    state.input = event.target.value;
+    if (state.loading) {
+      controller?.abort();
+      request++;
+      state.loading = false;
+      state.error =
+        "The lookup was canceled because the input changed. Submit the new player when ready.";
+      state.errorTitle = "Input changed.";
+      renderKeepPosition();
+    }
+  }
 });
+
+function showSavedPlayer(player, navigation = "push") {
+  controller?.abort();
+  request++;
+  state.player = player;
+  state.input = String(player.id);
+  state.loading = false;
+  state.error = "";
+  state.candidates = [];
+  state.show = 8;
+  state.tab = "matches";
+  rememberPlayer(player, navigation);
+  render();
+  revealResults();
+}
+
 app.addEventListener("click", (event) => {
   const button = event.target.closest("button");
   if (!button) return;
   if (button.dataset.lookup) lookup(button.dataset.lookup);
   if (button.dataset.demo !== undefined) {
-    controller?.abort();
-    request++;
-    state.player = samples[Number(button.dataset.demo)];
-    state.input = String(state.player.id);
-    state.loading = false;
-    state.error = "";
-    state.candidates = [];
-    state.show = 8;
-    state.tab = "matches";
-    history.replaceState(null, "", location.pathname);
-    render();
-    revealResults();
+    showSavedPlayer(samples[Number(button.dataset.demo)]);
   }
   if (button.dataset.tab) {
     state.tab = button.dataset.tab;
@@ -269,4 +357,32 @@ app.addEventListener(
 );
 render();
 const initialPlayer = new URLSearchParams(location.search).get("player");
-if (initialPlayer) lookup(initialPlayer);
+const initialDemo = new URLSearchParams(location.search).get("demo");
+if (initialPlayer) lookup(initialPlayer, { navigation: "replace" });
+else if (initialDemo && samples.some((s) => s.id === Number(initialDemo)))
+  showSavedPlayer(
+    samples.find((s) => s.id === Number(initialDemo)),
+    "replace",
+  );
+else history.replaceState({ page: "home" }, "", location.href);
+
+window.addEventListener("popstate", () => {
+  const cached = playerCache.get(history.state?.key);
+  if (cached) return showSavedPlayer(cached, "none");
+  const params = new URLSearchParams(location.search);
+  const demo = samples.find((s) => s.id === Number(params.get("demo")));
+  if (demo) return showSavedPlayer(demo, "none");
+  if (params.get("player"))
+    return lookup(params.get("player"), { navigation: "none" });
+  controller?.abort();
+  request++;
+  Object.assign(state, {
+    player: null,
+    input: "",
+    loading: false,
+    error: "",
+    candidates: [],
+  });
+  render();
+  window.scrollTo(0, 0);
+});

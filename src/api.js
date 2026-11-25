@@ -2,22 +2,41 @@ import { parsePlayerInput } from "./stats.js";
 
 const API = "https://api.deadlock-api.com";
 
+async function readJson(response) {
+  try {
+    return await response.json();
+  } catch (error) {
+    if (error.name === "AbortError") throw error;
+    throw new Error(
+      "The stats service returned an unreadable response. Try again shortly, or explore a saved demo.",
+    );
+  }
+}
+
 async function get(path, signal) {
   let response;
   try {
     response = await fetch(`${API}${path}`, { signal });
   } catch (error) {
-    if (error.name === "AbortError") throw error;
+    if (error.name === "AbortError" || error.name === "TimeoutError")
+      throw error;
     throw new Error(
       "Couldn’t reach the stats service. Check your connection and try again, or explore a saved demo.",
     );
   }
   // The API can return stored history with 429; accept only an actual array.
   if (response.status === 429 && path.includes("/match-history")) {
-    const data = await response.json();
+    const data = await readJson(response);
     if (Array.isArray(data)) return { data, stored: true };
   }
   if (!response.ok) {
+    if (response.status === 404) {
+      const error = new Error(
+        "No indexed profile or match history was found for this Steam ID. Check the ID, or try another player.",
+      );
+      error.code = "NOT_FOUND";
+      throw error;
+    }
     if (response.status === 429)
       throw new Error(
         "The stats service is busy. Wait a moment and try again, or explore a saved demo.",
@@ -26,7 +45,7 @@ async function get(path, signal) {
       "The stats service could not return this profile. Try again shortly, or explore a saved demo.",
     );
   }
-  return { data: await response.json(), stored: false };
+  return { data: await readJson(response), stored: false };
 }
 
 export async function resolvePlayer(raw, signal) {
@@ -40,7 +59,14 @@ export async function resolvePlayer(raw, signal) {
     throw new Error(
       "The profile search is temporarily unavailable. Try a numeric Steam ID or Steam share link.",
     );
-  const exact = data.find((p) => {
+  const candidates = data.filter(
+    (p) =>
+      p &&
+      Number.isSafeInteger(p.account_id) &&
+      p.account_id > 0 &&
+      p.account_id <= 4294967295,
+  );
+  const exact = candidates.find((p) => {
     try {
       return (
         new URL(p.profileurl).pathname.replace(/\/$/, "").toLowerCase() ===
@@ -50,11 +76,11 @@ export async function resolvePlayer(raw, signal) {
       return false;
     }
   });
-  if (!exact && input.allowSearch && Array.isArray(data) && data.length) {
+  if (!exact && input.allowSearch && candidates.length) {
     const error = new Error(
       "Choose the right player below. Display names are not unique.",
     );
-    error.candidates = data.slice(0, 8);
+    error.candidates = candidates.slice(0, 8);
     throw error;
   }
   if (!exact)
@@ -66,23 +92,63 @@ export async function resolvePlayer(raw, signal) {
 
 export async function fetchPlayer(raw, signal) {
   const id = await resolvePlayer(raw, signal);
-  const [history, profile] = await Promise.all([
-    get(`/v1/players/${id}/match-history`, signal),
-    get(`/v1/players/steam?account_ids=${id}`, signal).catch(() => ({
-      data: [],
-    })),
+  // Optional name/avatar data must never hold back the match dashboard.
+  const profileSignal = AbortSignal.any([
+    ...(signal ? [signal] : []),
+    AbortSignal.timeout(4000),
   ]);
+  const profilePromise = get(
+    `/v1/players/steam?account_ids=${id}`,
+    profileSignal,
+  )
+    .then(({ data }) => {
+      if (!Array.isArray(data)) return { profile: null, status: "unavailable" };
+      const profile = data.find(
+        (p) => p && p.account_id === id && typeof p.personaname === "string",
+      );
+      return {
+        profile: profile ?? null,
+        status: profile ? "found" : "missing",
+      };
+    })
+    .catch((error) => ({
+      profile: null,
+      status: error.code === "NOT_FOUND" ? "missing" : "unavailable",
+    }));
+  const history = await get(`/v1/players/${id}/match-history`, signal);
   if (!Array.isArray(history.data))
     throw new Error(
       "The stats service returned an unexpected response. Please try again.",
     );
+  const fields = [
+    "match_id",
+    "game_mode",
+    "match_mode",
+    "hero_id",
+    "start_time",
+    "player_kills",
+    "player_deaths",
+    "player_assists",
+    "net_worth",
+    "match_duration_s",
+  ];
+  const matches = history.data.filter(
+    (m) => m && fields.every((key) => Number.isFinite(m[key]) && m[key] >= 0),
+  );
+  if (history.data.length && !matches.length)
+    throw new Error(
+      "The stats service returned unreadable match records. Try again shortly, or explore a saved demo.",
+    );
   return {
     id,
-    profile: profile.data?.[0] ?? {
+    profile: {
       account_id: id,
-      personaname: `Player ${id}`,
+      personaname: `Steam account ${id}`,
     },
-    matches: history.data,
+    profileStatus: "loading",
+    profilePromise,
+    matches,
+    invalidMatches: history.data.length - matches.length,
     stored: history.stored,
     fetchedAt: new Date().toISOString(),
     demo: false,
