@@ -100,7 +100,7 @@ export class Intelligence {
   click(button, player) {
     if (button.hasAttribute("data-refresh-tiers")) { this.load(this.tiers, "all", () => fetchTiers(this.tierWindow, true), true); return true; }
     if (button.dataset.refreshLeaders) { const id = Number(button.dataset.refreshLeaders); this.load(this.leaders, id, () => fetchHeroLeaders(id, this.window, true), true); return true; }
-    if (button.dataset.showBuild) { const hero = Number(button.dataset.buildHero), build = Number(button.dataset.showBuild); this.load(this.builds, `${hero}:${build}`, () => fetchBuild(hero, build), true); return true; }
+    if (button.dataset.showBuild) { const hero = Number(button.dataset.buildHero), build = Number(button.dataset.showBuild); this.load(this.builds, `${hero}:${build}`, () => fetchBuild(hero, build, true), true); return true; }
     if (button.dataset.refreshComparison && player) {
       for (const key of this.comparisons.keys()) if (key.startsWith(`${player.id}:`)) this.comparisons.delete(key);
       this.load(this.playerHeroes, player.id, () => fetchComparisonHeroes(player.id, this.window, true), true);

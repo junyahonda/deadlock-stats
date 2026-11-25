@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { bestHeroes, winConfidence, heroTiers, topPerformers, observedBuild, comparePeers } from "./insights.js";
-import { analysisWindow, fetchComparison, fetchTiers, fetchHeroLeaders } from "./insights-api.js";
+import { analysisWindow, fetchComparison, fetchTiers, fetchHeroLeaders, fetchBuild } from "./insights-api.js";
 
 const match = (hero_id, win = true) => ({ hero_id, player_match_outcome: win ? 1 : 2, player_kills: 6, player_deaths: 2, player_assists: 4 });
 test("personal hero ranking discounts one lucky game and never scores missing outcomes", () => {
@@ -125,5 +125,21 @@ test("refreshing comparison fetches fresh peers and recomputes their benchmark",
     assert.equal(requests, 4);
     assert.equal(first.metrics.find((m) => m.key === "networth_per_min").peer, 1000);
     assert.equal(fresh.metrics.find((m) => m.key === "networth_per_min").peer, 2000);
+  } finally { globalThis.fetch = original; }
+});
+
+test("retry unindexed builds and reload details both bypass cached build responses", async () => {
+  const original = globalThis.fetch;
+  let requests = 0;
+  try {
+    globalThis.fetch = async (url) => {
+      if (url.includes("/assets/items")) return Response.json([]);
+      requests++;
+      return Response.json(requests === 1 ? [] : [{ hero_build: { hero_id: 1, hero_build_id: 999999, version: requests, name: `Build version ${requests}` } }]);
+    };
+    await assert.rejects(fetchBuild(1, 999999), /not publicly indexed/);
+    assert.equal((await fetchBuild(1, 999999, true)).build.version, 2);
+    assert.equal((await fetchBuild(1, 999999, true)).build.version, 3);
+    assert.equal(requests, 3);
   } finally { globalThis.fetch = original; }
 });

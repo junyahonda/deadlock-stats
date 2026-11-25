@@ -79,10 +79,10 @@ export async function fetchComparison(self, window, refresh = false) {
   return comparePeers(self, rows.filter((row) => ids.has(row?.account_id)));
 }
 
-export async function fetchBuild(heroId, buildId) {
+export async function fetchBuild(heroId, buildId, refresh = false) {
   const [builds, items] = await Promise.all([
-    json("/v1/builds", { build_id: buildId, hero_id: heroId, only_latest: true, limit: 1 }),
-    json("/v1/assets/items", { language: "english" }).catch(() => []),
+    json("/v1/builds", { build_id: buildId, hero_id: heroId, only_latest: true, limit: 1 }, { refresh }),
+    json("/v1/assets/items", { language: "english" }, { refresh }).catch(() => []),
   ]);
   const build = Array.isArray(builds) ? builds.find((row) => row?.hero_build?.hero_id === heroId && row.hero_build.hero_build_id === buildId)?.hero_build : null;
   if (!build) throw new Error("This observed build is not publicly indexed. Search its build ID in Deadlock instead.");
